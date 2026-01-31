@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPSC Command Center Ultra</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2><i class="fas fa-book-reader"></i> UPSC Prep</h2>
+        
+        <div class="rank-badge" id="authPanel" style="background: var(--bg-card); border: 1px dashed var(--border); text-align: center;">
+            <button onclick="loginGoogle()" id="btnLogin" style="width: 100%; background: #4285F4; color: white; font-size: 0.8rem;">
+                <i class="fab fa-google"></i> Sync Data
+            </button>
+            <div id="userProfile" style="display:none;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 5px;">Synced as:</div>
+                <div id="userName" style="font-weight: bold; color: var(--success); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis;">User</div>
+                <button onclick="logoutGoogle()" style="width: 100%; background: var(--danger); margin-top: 5px; font-size: 0.7rem;">Logout</button>
+            </div>
+        </div>
+
+        <div class="rank-badge">
+            <div style="font-size:0.8rem; color:var(--text-muted);">Rank: <span id="rankTitle" style="color:#f59e0b; font-weight:bold;">Aspirant</span></div>
+            <div class="xp-bar"><div class="xp-fill" id="xpBar" style="width:0%"></div></div>
+            <div style="font-size:0.7rem; text-align:right; margin-top:2px;">Lvl <span id="levelDisplay">1</span></div>
+        </div>
+        
+        <div class="nav-item active" onclick="showSection('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</div>
+        <div class="nav-item" onclick="showSection('newsroom')"><i class="fas fa-newspaper"></i> News Room</div>
+        <div class="nav-item" onclick="showSection('warroom')"><i class="fas fa-map-marked-alt"></i> War Room</div>
+        <div class="nav-item" onclick="showSection('syllabus')"><i class="fas fa-list-check"></i> Syllabus</div>
+        <div class="nav-item" onclick="showSection('calendar')"><i class="fas fa-calendar-alt"></i> Planner</div>
+        <div class="nav-item" onclick="showSection('analytics')"><i class="fas fa-chart-line"></i> Analytics</div>
+
+        <div class="nav-item" onclick="openAppsModal()" style="background: rgba(59, 130, 246, 0.1); color: var(--primary); font-weight: bold; margin-top: 10px;">
+            <i class="fas fa-th"></i> All Tools
+        </div>
+
+        <div style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px;">
+            <div class="nav-item" onclick="toggleTheme()"><i class="fas fa-moon"></i> Dark Mode</div>
+            <div class="nav-item" onclick="exportData()"><i class="fas fa-download"></i> Backup</div>
+            <div class="nav-item" onclick="document.getElementById('fileInput').click()"><i class="fas fa-upload"></i> Restore</div>
+            <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="dashboard" class="section active">
+            <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1 class="user-welcome" id="dashboardTitle">Welcome Back, Masood</h1>
+                    <h2 class="motivation-quote" style="font-size: 1.1rem; margin-top: 5px;">"Birds that are meant to fly at great heights don't get attached to small branches."</h2>
+                </div>
+                <button onclick="openAppsModal()" class="apps-btn"><i class="fas fa-th"></i> Apps</button>
+            </div>
+            <br>
+            <div class="grid-container">
+                <div class="card" id="timerCard">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="toggle-container" style="background:var(--bg-input); padding:3px; border-radius:20px; display:flex; border:1px solid var(--border);">
+                            <button onclick="switchTimerMode('timer')" id="mode-timer" style="padding:2px 10px; border-radius:15px; font-size:0.7rem; width:auto; background:var(--bg-card); color:var(--text-main);">⏳ Timer</button>
+                            <button onclick="switchTimerMode('stopwatch')" id="mode-stopwatch" style="padding:2px 10px; border-radius:15px; font-size:0.7rem; width:auto; background:transparent; color:var(--text-muted);">⏱️ Stopwatch</button>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="toggleZenMode()" style="background: #8b5cf6; padding: 2px 8px; font-size: 0.7rem; width: auto;">Zen</button>
+                            <button onclick="triggerPanic()" style="background: var(--danger); padding: 2px 8px; font-size: 0.7rem; width: auto;">PANIC</button>
+                        </div>
+                    </div>
+                    <select id="preTimerSubject" class="modal-input" onchange="populateTimerChapters()" style="margin-top: 15px; margin-bottom: 5px; text-align: center; font-weight: bold; border: 2px solid var(--primary);">
+                        <option value="" disabled selected>-- Select Subject --</option>
+                    </select>
+                    <select id="preTimerChapter" class="modal-input" style="margin-bottom: 5px; text-align: center; border: 1px solid var(--border); font-size: 0.9rem; display:none;">
+                        <option value="" disabled selected>-- Select Chapter --</option>
+                    </select>
+                    <div class="timer-display" id="timer">25:00</div>
+                    <div class="timer-controls">
+                        <button onclick="startTimer()" id="btnStart">Start</button>
+                        <button onclick="pauseTimer()" style="background:#f59e0b">Pause</button>
+                        <button onclick="finishEarly()" style="background:#10b981; font-size:0.8rem; width:auto;">✅ Done</button>
+                        <button onclick="resetTimer()" class="stop" style="background:#6b7280; width:auto;">Reset</button>
+                    </div>
+                    <div class="timer-settings" id="timerSettingsArea">
+                        <div class="setting-group"><label>Focus</label><input type="number" id="focusTime" value="25" onchange="resetTimer()"></div>
+                        <div class="setting-group"><label>Break</label><input type="number" id="breakTime" value="5" onchange="resetTimer()"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-check-double"></i> Daily Rituals</h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                        <div class="goal-item" style="border-left: 4px solid var(--primary);">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:10px; width:100%;">
+                                <input type="checkbox" id="news-hindu" onchange="toggleNews('hindu')"> <span>The Hindu / IE</span>
+                            </label>
+                        </div>
+                        <div class="goal-item" style="border-left: 4px solid var(--success);">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:10px; width:100%;">
+                                <input type="checkbox" id="news-edit" onchange="toggleNews('edit')"> <span>Editorial Analysis</span>
+                            </label>
+                        </div>
+                        <div class="goal-item" style="border-left: 4px solid #f59e0b;">
+                            <label style="cursor:pointer; display:flex; align-items:center; gap:10px; width:100%;">
+                                <input type="checkbox" id="news-mag" onchange="toggleNews('mag')"> <span>Monthly Magazine</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+                        Streak: <strong id="streakDisplay" style="color: var(--success); font-size: 1.1rem;">0 Days</strong> 🔥
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-bolt"></i> Today's Snapshot</h3>
+                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                            <span>Focus Time:</span>
+                            <strong id="todayFocus" style="color: var(--primary);">0m</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                            <span>Tasks Done:</span>
+                            <strong id="todayTasks" style="color: var(--success);">0</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
+                            <span>Syllabus:</span>
+                            <strong id="totalCoverage" style="color: #f59e0b;">0%</strong>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                            Est. Finish: <span id="completionPredictor">Calculating...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="btech-panel" style="display:none; margin-top: 30px; border-top: 2px dashed #4b5563; padding-top: 20px;">
+                <h2 style="color: #f59e0b; margin-bottom: 15px;">Engineering Command</h2>
+                <div class="grid-container">
+                    <div class="card"><h3>Attendance</h3><div class="goal-input"><input type="text" id="btechSubName" placeholder="Subject..."><button onclick="addBtechSubject()">Add</button></div><div id="attendanceList"></div></div>
+                    <div class="card"><h3>Assignments</h3><div class="goal-input"><input type="text" id="assignName" placeholder="Task..."><button onclick="addAssignment()">Add</button></div><ul id="assignmentList" class="goal-list"></ul></div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;"><h3>Consistency Heatmap</h3><div id="heatmap" class="heatmap-grid"></div></div>
+        </div>
+
+        <div id="analytics" class="section">
+            <h2>Analytics</h2>
+            <div class="grid-container" style="margin-bottom: 20px;">
+                <div class="card" style="height: 300px;"><h3>Subject Distribution</h3><div style="height: 240px; position: relative;"><canvas id="subjectChart"></canvas></div></div>
+                <div class="card" style="height: 300px;"><h3>Focus History (7 Days)</h3><div style="height: 240px; position: relative;"><canvas id="focusChart"></canvas></div></div>
+            </div>
+            <div class="card" style="margin-bottom: 20px;"><h3>Syllabus Completion</h3><div style="height: 300px; position: relative;"><canvas id="syllabusChart"></canvas></div></div>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h3><i class="fas fa-history"></i> Session Log</h3>
+                    <button onclick="clearHistory()" style="background:var(--danger); font-size:0.7rem; width:auto; padding: 4px 10px;">Clear Log</button>
+                </div>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table id="historyTable" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                        <thead style="background:var(--header-row); position:sticky; top:0; z-index:10;">
+                            <tr>
+                                <th style="padding:10px; text-align:left;">Date</th>
+                                <th style="padding:10px; text-align:left;">Subject</th>
+                                <th style="padding:10px; text-align:left;">Topic</th>
+                                <th style="padding:10px; text-align:left;">Time</th>
+                                <th style="padding:10px; text-align:left;">Mode</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="newsroom" class="section"><div style="display:flex; justify-content:space-between; align-items:center;"><h2>News Room</h2><button onclick="refreshNews()" style="width:auto;">Refresh</button></div><div class="tabs" style="margin-top:15px;"><div class="tab active" onclick="loadNewsSource('hindu')">Hindu</div><div class="tab" onclick="loadNewsSource('express')">Express</div><div class="tab" onclick="loadNewsSource('pib')">PIB</div></div><div id="newsContainer" class="grid-container" style="margin-top:20px;"></div></div>
+        <div id="warroom" class="section"><h2>War Room</h2><div style="display: grid; grid-template-columns: 3fr 1fr; gap: 20px; height: 600px;"><div class="card" style="padding:0; overflow:hidden;"><div id="map" style="width:100%; height:100%;"></div></div><div class="card" style="overflow-y:auto;"><h3>Pins</h3><div id="pinList"></div></div></div></div>
+        <div id="syllabus" class="section"><input type="text" id="syllabusSearch" placeholder="Search..." onkeyup="searchSyllabus()" class="modal-input"><div id="syllabus-container"></div></div>
+        <div id="calendar" class="section"><h2>Planner</h2><div class="calendar-header"><button onclick="changeMonth(-1)"><</button><h3 id="monthYearDisplay"></h3><button onclick="changeMonth(1)">></button></div><div class="calendar-grid" id="calendarGrid"></div></div>
+        
+        <div id="chef" class="section"><h2><i class="fas fa-utensils"></i> The Chef</h2><p style="color:gray; font-size:0.9rem;">Plan your fuel. Reduce decision fatigue.</p><br><div class="card"><div id="mealGrid" style="display:grid; grid-template-columns: 1fr 2fr 2fr; gap:10px;"></div></div></div>
+        <div id="dopamine" class="section"><h2><i class="fas fa-mobile-alt"></i> Dopamine Log</h2><p style="color:gray; font-size:0.9rem;">Track the waste. Reclaim the time.</p><br><div class="card"><div style="display:flex; gap:10px;"><input type="text" id="distractionInput" placeholder="Activity (e.g. Insta)..." class="modal-input"><input type="number" id="distractionTime" placeholder="Mins" class="modal-input" style="width:80px;"><button onclick="logDistraction()">Log</button></div><h3 style="margin-top:20px; color:var(--danger);">Total Wasted Today: <span id="totalWasted">0</span> mins</h3><div id="distractionList" style="margin-top:10px;"></div></div></div>
+        <div id="inventory" class="section"><h2><i class="fas fa-shopping-cart"></i> Inventory</h2><p style="color:gray; font-size:0.9rem;">Never run out of essentials.</p><br><div class="card"><div style="display:flex; gap:10px;"><input type="text" id="invInput" placeholder="Item (e.g. Toothpaste)..." class="modal-input"><button onclick="addInventory()">Add</button></div><div id="invList" style="margin-top:20px; display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:10px;"></div></div></div>
+        <div id="events" class="section"><h2><i class="fas fa-calendar-star"></i> Event Horizon</h2><p style="color:gray; font-size:0.9rem;">Life beyond the books.</p><br><div class="card"><div style="display:flex; gap:10px;"><input type="text" id="eventTitle" placeholder="Event Name..." class="modal-input"><input type="date" id="eventDate" class="modal-input"><button onclick="addEvent()">Set</button></div><div id="eventList" style="margin-top:20px;"></div></div></div>
+        <div id="thoughtpad" class="section"><h2><i class="fas fa-sticky-note"></i> Thought Pad</h2><p style="color:gray; font-size:0.9rem;">Clear your mind. Dump it here.</p><br><div class="card" style="height:70vh;"><textarea id="thoughtArea" style="width:100%; height:100%; background:transparent; color:var(--text-main); border:none; resize:none; font-size:1.1rem; line-height:1.6;" placeholder="Type anything... It auto-saves." oninput="saveThoughts()"></textarea></div></div>
+        
+        <div id="treasury" class="section"><h2>Treasury</h2><div class="card"><h3>Budget: ₹<span id="budgetDisplay">0</span></h3><button onclick="setBudget()">Set</button><div class="xp-bar"><div id="budgetBar" class="xp-fill"></div></div></div><div class="card" style="margin-top:20px;"><input type="number" id="expenseAmount" placeholder="Amount" class="modal-input"><input type="text" id="expenseDesc" placeholder="Item" class="modal-input"><button onclick="addExpense()">Add</button><div id="expenseList"></div></div></div>
+        <div id="bio" class="section"><h2>Bio-Rhythm</h2><div class="card"><input type="number" id="sleepHours" placeholder="Sleep Hrs"><button onclick="logSleep()">Log</button> <span id="avgSleep"></span></div><div class="card" style="margin-top:10px;"><input type="number" id="weightInput" placeholder="Weight (kg)" onchange="saveBio()"></div></div>
+        <div id="monk" class="section"><h2>Monk Mode</h2><div class="card"><h3>Mood</h3><button onclick="logMood('😡')">😡</button><button onclick="logMood('😐')">😐</button><button onclick="logMood('🙂')">🙂</button><button onclick="logMood('🤩')">🤩</button><div id="moodStatus"></div></div><div class="card" style="margin-top:10px;"><textarea id="gratitudeText" placeholder="Grateful for..." class="modal-input"></textarea><button onclick="saveGratitude()">Save</button><div id="gratitudeList"></div></div></div>
+        <div id="watchlist" class="section"><h2>Watchlist</h2><div class="card"><input type="text" id="watchTitle" placeholder="Title"><select id="watchType"><option>Movie</option><option>Book</option></select><button onclick="addWatchItem()">Add</button><div id="watchListContainer"></div></div></div>
+        <div id="bucket" class="section"><h2>Bucket List</h2><div class="card"><input type="text" id="bucketItem" placeholder="Dream..."><button onclick="addBucketItem()">Add</button><ul id="bucketListContainer"></ul></div></div>
+        <div id="constitution" class="section"><h2>Constitution</h2><div class="card"><input type="text" id="constSearch" placeholder="Search..." class="modal-input" onkeyup="searchConstitution()"><div id="constResults"></div></div></div>
+        <div id="whiteboard" class="section"><h2>Canvas</h2><div class="card" style="padding:0; height:75vh;"><canvas id="drawingCanvas" style="width:100%; height:100%;"></canvas></div><div style="margin-top:10px;"><button onclick="clearCanvas()">Clear</button> <button onclick="downloadCanvas()">Save</button> <input type="color" id="brushColor" value="#ffffff"></div></div>
+        <div id="goals" class="section"><h2>Goals</h2><div class="tabs"><div class="tab active" onclick="switchGoalTab('daily')">Daily</div><div class="tab" onclick="switchGoalTab('weekly')">Weekly</div></div><div class="card"><input type="text" id="newGoalInput" placeholder="Goal..."><button onclick="addGoal()">Add</button><ul id="goalList"></ul></div></div>
+        <div id="library" class="section"><h2>Library</h2><div class="card"><input type="text" id="bookTitle" placeholder="Title"><input type="number" id="bookPages" placeholder="Pages"><button onclick="addBook()">Add</button><div id="libraryContainer"></div></div></div>
+        <div id="tests" class="section"><h2>Tests</h2><div class="card"><input type="text" id="testSubject" placeholder="Subject"><input type="number" id="testScore" placeholder="Score"><button onclick="addTestScore()">Log</button></div><div class="card"><canvas id="testChart"></canvas></div><table id="testTable"><tbody></tbody></table></div>
+        <div id="scanner" class="section"><h2>Scanner</h2><input type="text" id="scanInput"><button onclick="scanSyllabus()">Scan</button><div id="scanResults"></div></div>
+        <div id="flashcards" class="section"><h2>Cards</h2><div class="card"><div id="cardDisplay" onclick="flipCard()">Click to Start</div><button onclick="nextCard()">Next</button></div><div class="card"><input id="fcFront"><input id="fcBack"><button onclick="addFlashcard()">Add</button></div></div>
+        <div id="mains" class="section"><h2>Mains</h2><textarea id="mainsBody"></textarea><button onclick="saveMainsDraft()">Save</button></div>
+        <div id="retro" class="section"><h2>Retro</h2><textarea id="retroWell"></textarea><button onclick="saveRetro()">Save</button></div>
+        <div id="chain" class="section"><h2>Chain</h2><div class="card">Coming Soon</div></div>
+    </div>
+
+    <div id="appsModal" class="modal">
+        <div class="modal-content" style="width: 600px;">
+            <div style="display:flex; justify-content:space-between;"><h2>Apps</h2><button onclick="closeModal('appsModal')" class="btn-cancel">X</button></div>
+            <div class="apps-grid">
+                <div class="app-icon" onclick="selectApp('chef')"><i class="fas fa-utensils" style="color:#f59e0b"></i><span>Chef</span></div>
+                <div class="app-icon" onclick="selectApp('dopamine')"><i class="fas fa-mobile-alt" style="color:#ef4444"></i><span>Detox</span></div>
+                <div class="app-icon" onclick="selectApp('inventory')"><i class="fas fa-shopping-cart" style="color:#10b981"></i><span>Shop</span></div>
+                <div class="app-icon" onclick="selectApp('events')"><i class="fas fa-calendar-star" style="color:#3b82f6"></i><span>Events</span></div>
+                <div class="app-icon" onclick="selectApp('thoughtpad')"><i class="fas fa-sticky-note" style="color:var(--text-main)"></i><span>Thoughts</span></div>
+                <div class="app-icon" onclick="selectApp('treasury')"><i class="fas fa-rupee-sign" style="color:#10b981"></i><span>Treasury</span></div>
+                <div class="app-icon" onclick="selectApp('bio')"><i class="fas fa-heartbeat" style="color:#ef4444"></i><span>Health</span></div>
+                <div class="app-icon" onclick="selectApp('monk')"><i class="fas fa-brain" style="color:#8b5cf6"></i><span>Monk</span></div>
+                <div class="app-icon" onclick="selectApp('watchlist')"><i class="fas fa-film" style="color:#f59e0b"></i><span>Watch</span></div>
+                <div class="app-icon" onclick="selectApp('bucket')"><i class="fas fa-globe-americas" style="color:#3b82f6"></i><span>Bucket</span></div>
+                
+                <div class="app-icon" onclick="selectApp('constitution')"><i class="fas fa-balance-scale" style="color:#f59e0b"></i><span>Polity</span></div>
+                <div class="app-icon" onclick="selectApp('whiteboard')"><i class="fas fa-pen-alt" style="color:var(--text-main)"></i><span>Canvas</span></div>
+                <div class="app-icon" onclick="selectApp('goals')"><i class="fas fa-bullseye" style="color:#f59e0b"></i><span>Goals</span></div>
+                <div class="app-icon" onclick="selectApp('library')"><i class="fas fa-book" style="color:#10b981"></i><span>Library</span></div>
+                <div class="app-icon" onclick="selectApp('tests')"><i class="fas fa-pencil-ruler" style="color:#ef4444"></i><span>Tests</span></div>
+                <div class="app-icon" onclick="selectApp('flashcards')"><i class="fas fa-sd-card" style="color:#ef4444"></i><span>Cards</span></div>
+                <div class="app-icon" onclick="selectApp('mains')"><i class="fas fa-pen-fancy" style="color:#8b5cf6"></i><span>Mains</span></div>
+                <div class="app-icon" onclick="selectApp('retro')"><i class="fas fa-history" style="color:#f59e0b"></i><span>Retro</span></div>
+                <div class="app-icon" onclick="selectApp('scanner')"><i class="fas fa-search" style="color:#10b981"></i><span>Scan</span></div>
+                <div class="app-icon" onclick="selectApp('chain')"><i class="fas fa-link" style="color:#3b82f6"></i><span>Chain</span></div>
+                <div class="app-icon" onclick="openAIModal()"><i class="fas fa-robot" style="color:#3b82f6"></i><span>AI</span></div>
+                <div class="app-icon" onclick="openOMRModal()"><i class="fas fa-circle" style="color:#9ca3af"></i><span>OMR</span></div>
+                <div class="app-icon" onclick="startMathDrill()"><i class="fas fa-calculator" style="color:#f59e0b"></i><span>Math</span></div>
+                <div class="app-icon" onclick="openCalcModal()"><i class="fas fa-divide" style="color:#3b82f6"></i><span>Calc</span></div>
+                <div class="app-icon" onclick="openManifesto()"><i class="fas fa-scroll" style="color:#10b981"></i><span>Manifesto</span></div>
+                <div class="app-icon"><label><input type="checkbox" id="degreeToggle" onchange="toggleDegreeMode()"> <span>B.Tech</span></label></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="planModal" class="modal">
+    <div class="modal-content">
+        <h3>Plan for <span id="modalDate" style="color:var(--primary)"></span></h3>
+        <textarea id="planText" rows="3" class="modal-input" placeholder="Priorities for this day..."></textarea>
+        <textarea id="journalText" rows="3" class="modal-input" placeholder="End of day journal..."></textarea>
+        <button onclick="savePlan()">Save</button>
+        <button onclick="closeModal('planModal')" style="background:var(--danger)">Close</button>
+    </div>
+</div>
+    <div id="noteModal" class="modal"><div class="modal-content"><h3>Note</h3><textarea id="noteText" rows="5" class="modal-input"></textarea><input id="noteLink" class="modal-input"><button onclick="saveNote()">Save</button><button onclick="closeModal('noteModal')">Close</button></div></div>
+    <div id="subjectModal" class="modal"><div class="modal-content"><h3>Done!</h3><select id="timerSubject" class="modal-input"><option>History</option><option>Polity</option><option>Geography</option><option>Economy</option><option>Env</option><option>SciTech</option><option>CSAT</option></select><div id="endSessionTopic"></div><button onclick="saveTimerSession()">Log</button></div></div>
+    <div id="aiModal" class="modal"><div class="modal-content"><h3>AI</h3><select id="aiTopic" class="modal-input"><option disabled selected>Topic...</option></select><select id="aiMode" class="modal-input"><option value="explain">Explain</option><option value="quiz">Quiz</option></select><textarea id="aiOutput" rows="5" class="modal-input"></textarea><button onclick="generateAIPrompt()">Generate</button><button onclick="closeModal('aiModal')">Close</button></div></div>
+    <div id="calcModal" class="modal"><div class="modal-content"><h3>Calc</h3><input id="calcInput" class="modal-input"><div class="calc-keys"><button onclick="calc('7')">7</button><button onclick="calc('8')">8</button><button onclick="calc('9')">9</button><button onclick="calc('/')">/</button><button onclick="calc('4')">4</button><button onclick="calc('5')">5</button><button onclick="calc('6')">6</button><button onclick="calc('*')">*</button><button onclick="calc('1')">1</button><button onclick="calc('2')">2</button><button onclick="calc('3')">3</button><button onclick="calc('-')">-</button><button onclick="calc('C')">C</button><button onclick="calc('0')">0</button><button onclick="calc('=')">=</button><button onclick="calc('+')">+</button></div><button onclick="closeModal('calcModal')">Close</button></div></div>
+    <div id="omrModal" class="modal"><div class="modal-content"><div id="omrGrid"></div><button onclick="closeModal('omrModal')">Close</button></div></div>
+    <div id="mathModal" class="modal"><div class="modal-content"><div id="mathTimer"></div><div id="mathQuestion"></div><input id="mathAnswer" onkeydown="checkMathAnswer(event)"><button onclick="closeModal('mathModal')">Quit</button></div></div>
+    <div id="panicModal" class="modal" style="display:none;">
+    <div class="modal-content" style="text-align: center; width: 350px; background: #111827; border: 1px solid #374151;">
+        <h2 style="color: #60a5fa; margin-bottom: 5px;">Breathe</h2>
+        <p style="color: #9ca3af; font-size: 0.9rem;">Sync your breath with the circle.</p>
+        
+        <div class="breathing-circle"></div>
+        
+        <p id="breatheInstruction" style="height: 20px; color: #fff; font-weight: bold; margin-bottom: 20px;">Inhale...</p>
+        <button onclick="closeModal('panicModal')" style="background: #374151; color: #fff; width: 100%;">I feel better</button>
+    </div>
+</div>
+    <div id="manifestoModal" class="modal"><div class="modal-content"><textarea id="manifestoText" rows="10" class="modal-input"></textarea><button onclick="saveManifesto()">Save</button><button onclick="closeModal('manifestoModal')">Close</button></div></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
