@@ -221,7 +221,28 @@ function initializeUI() {
     
     updateRank();
     updateTimerVisuals(); // Instant UI fix for Timer/Stopwatch
+// --- ADD THIS NEW BLOCK HERE ---
+    // Check if a timer was running when the app was closed
+    if (appData.timer.active) {
+        const now = Date.now();
 
+        if (appData.timer.mode === 'timer') {
+            // Check if the target time has already passed
+            if (appData.timer.endTime && now >= appData.timer.endTime) {
+                // If yes, finish the session immediately
+                console.log("Timer finished while app was closed.");
+                completeSession(); 
+            } else {
+                // If no, resume the visual countdown
+                console.log("Resuming active timer...");
+                runTimerInterval(); 
+            }
+        } else {
+            // If it's a stopwatch, just resume counting
+            runTimerInterval();
+        }
+    }
+    // -------------------------------
     setInterval(checkSunset, 60000);
     checkSunset();
 }
