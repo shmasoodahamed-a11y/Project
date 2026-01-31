@@ -78,6 +78,12 @@ let appData = {
     dopamine: [],
     inventory: [],
     events: [],
+    // --- ADD THESE NEW LINES ---
+    retroWell: "",     // For Retro: What went well
+    retroBad: "",      // For Retro: What went bad
+    retroStrat: "",    // For Retro: Strategy
+    tempMainsBody: "", // For Mains: Draft answer
+    // ---------------------------
     thoughts: ""
 };
 
@@ -247,15 +253,58 @@ function initializeUI() {
     checkSunset();
 }
 
-function saveData() {
-    localStorage.setItem('upsc_app_data_v19', JSON.stringify(appData));
-    if (!isOffline && currentUser && db) {
-        db.collection('users').doc(currentUser.uid).set(appData)
-            .catch(e => console.error("Cloud Save Error:", e));
-    }
-    updateDashboard();
+// ==========================================
+// NEW SAVING SYSTEM (Copy & Paste this)
+// ==========================================
+let saveTimeout;
+
+// This helper function waits 2 seconds after you stop typing
+function triggerAutoSave() {
+    const statusEl = document.getElementById('saveStatus');
+    if (statusEl) statusEl.innerText = "⏳ Syncing...";
+    
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(saveData, 2000); // 2 second delay
+window.addEventListener('online', () => { 
+    console.log("Back Online"); 
+    saveData(); // Sync immediately when internet returns
+});
 }
 
+function saveData() {
+    // 1. Instant Local Save (Backup)
+    localStorage.setItem('upsc_app_data_v19', JSON.stringify(appData));
+
+    // 2. Cloud Save (Firebase)
+    const statusEl = document.getElementById('saveStatus');
+    
+    if (typeof currentUser !== 'undefined' && currentUser && db) {
+        // We use .set() with merge:true so we don't accidentally delete fields
+        db.collection('users').doc(currentUser.uid).set(appData, { merge: true })
+            .then(() => {
+                console.log("Cloud Save Success");
+                if (statusEl) {
+                    statusEl.innerText = "☁️ Saved";
+                    statusEl.style.color = "#10b981"; // Green
+                    setTimeout(() => { statusEl.innerText = ""; }, 3000);
+                }
+            })
+            .catch(e => {
+                console.error("Cloud Save Error:", e);
+                if (statusEl) {
+                    statusEl.innerText = "⚠️ Offline (Saved Locally)";
+                    statusEl.style.color = "#ef4444"; // Red
+                }
+            });
+    } else {
+        // Offline Mode
+        if (statusEl) {
+            statusEl.innerText = "💾 Saved (Offline)";
+            statusEl.style.color = "gray";
+            setTimeout(() => { statusEl.innerText = ""; }, 3000);
+        }
+    }
+}
 function loginGoogle() {
     if(isOffline) { alert("Please add your Firebase Keys in script.js first!"); return; }
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -1188,7 +1237,33 @@ function addTestScore() { appData.tests.push({date:getTodayDate(), type:document
 function openAIModal() { const sel = document.getElementById('aiTopic'); sel.innerHTML = '<option value="" disabled selected>Select Topic...</option>'; UPSC_SYLLABUS.forEach(s => s.chapters.forEach(c => c.topics.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`))); document.getElementById('aiModal').style.display = 'flex'; }
 function generateAIPrompt() { const topic = document.getElementById('aiTopic').value; const mode = document.getElementById('aiMode').value; if(!topic) return; let prompt = ""; if(mode === "explain") prompt = `Explain "${topic}" in simple terms.`; if(mode === "quiz") prompt = `Generate 5 MCQs on "${topic}".`; if(mode === "mains") prompt = `Structure a Mains answer for "${topic}".`; if(mode === "facts") prompt = `Key facts for "${topic}".`; document.getElementById('aiOutput').value = prompt; }
 function startMainsTimer() { document.getElementById('focusTime').value = 7; startTimer(); }
-function setupAutosave() { const ids = ['manifestoText', 'mainsIntro', 'mainsBody', 'mainsConc', 'retroWell', 'retroBad', 'retroStrat']; ids.forEach(id => { const el = document.getElementById(id); if(el) { el.addEventListener('input', () => { if(id === 'manifestoText') appData.manifesto = el.value; }); } }); }
+function setupAutosave() {
+    // This list connects the HTML ID to the App Data variable
+    const mappings = [
+        { id: 'manifestoText', field: 'manifesto' },
+        { id: 'thoughtArea', field: 'thoughts' },
+        { id: 'retroWell', field: 'retroWell' }, 
+        { id: 'retroBad', field: 'retroBad' },
+        { id: 'retroStrat', field: 'retroStrat' },
+        { id: 'mainsBody', field: 'tempMainsBody' }
+    ];
+
+    mappings.forEach(map => {
+        const el = document.getElementById(map.id);
+        if (el) {
+            // 1. Load saved text when app opens
+            if (appData[map.field]) {
+                el.value = appData[map.field];
+            }
+
+            // 2. Listen for typing and trigger save
+            el.addEventListener('input', () => {
+                appData[map.field] = el.value; // Update variable
+                triggerAutoSave(); // Call the smart save function
+            });
+        }
+    });
+}
 function exportData() { const blob = new Blob([JSON.stringify(appData)], {type:"application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "UPSC_Ultra_Backup.json"; a.click(); }
 function toggleTheme() { document.body.classList.toggle('dark-mode'); appData.darkMode = !appData.darkMode; saveData(); renderCharts(); }
 function copyToClipboard() { document.getElementById("aiOutput").select(); document.execCommand("copy"); alert("Copied!"); }
