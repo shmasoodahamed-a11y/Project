@@ -200,61 +200,7 @@ function initializeUI() {
     try { renderDopamine(); } catch(e) {}
     try { renderInventory(); } catch(e) {}
     try { renderEvents(); } catch(e) {}
-    try { setupAutosave(); } catch(e) {} // Ensure autosave is ON
     try { document.getElementById('thoughtArea').value = appData.thoughts || ""; } catch(e) {}
-    // 3. Restore Subject & Chapter Selection (THE FIX)
-    // We delay slightly to ensure the dropdown options are populated
-    setTimeout(() => {
-        if(appData.timer && appData.timer.subject) {
-            const subjSelect = document.getElementById('preTimerSubject');
-            const chapSelect = document.getElementById('preTimerChapter');
-            
-            // Set Subject
-            subjSelect.value = appData.timer.subject;
-            
-            // Trigger the chapter population manually based on this subject
-            populateTimerChapters(); 
-            
-            // Set Chapter if it exists
-            if(appData.timer.chapter) {
-                chapSelect.value = appData.timer.chapter;
-            }
-        }
-    }, 50);
-// 4. Handle Timer State (THE FIX for 25:00 Glitch)
-    if (appData.timer.active) {
-        const now = Date.now();
-        if (appData.timer.mode === 'timer') {
-            if (appData.timer.endTime && now >= appData.timer.endTime) {
-                // Timer finished while closed
-                completeSession();
-            } else {
-                // Timer is still running -> Resume immediately
-                runTimerInterval();
-                tick(); // <--- FORCE UPDATE VISUALS NOW (Fixes 25:00)
-            }
-        } else {
-            // Stopwatch -> Resume
-            runTimerInterval();
-            tick(); // <--- FORCE UPDATE VISUALS NOW
-        }
-    }
-
-// 5. Final UI Polish
-    if(document.getElementById('degreeToggle')) {
-        document.getElementById('degreeToggle').checked = appData.degreeMode;
-    }
-    toggleDegreeMode();
-    renderHydration();
-    
-    document.getElementById('deadTimeDisplay').innerText = `${appData.deadTime}m`;
-    document.getElementById('penDisplay').innerText = appData.pensUsed;
-    
-    updateRank();
-    updateTimerVisuals(); // Ensure button says "Pause" or "Resume" correctly
-
-
-
 
     // B.Tech Toggle
     if(document.getElementById('degreeToggle')) {
@@ -318,12 +264,12 @@ function triggerAutoSave() {
     if (statusEl) statusEl.innerText = "⏳ Syncing...";
     
     clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveData, 2000); 
-// 6. Network Listeners
-    window.addEventListener('online', () => { console.log("Online"); saveData(); });
-    setInterval(checkSunset, 60000);
-    checkSunset();
-}}
+    saveTimeout = setTimeout(saveData, 2000); // 2 second delay
+window.addEventListener('online', () => { 
+    console.log("Back Online"); 
+    saveData(); // Sync immediately when internet returns
+});
+}
 
 function saveData() {
     // 1. Instant Local Save (Backup)
