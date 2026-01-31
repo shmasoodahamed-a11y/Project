@@ -166,9 +166,10 @@ function importData(input) {
 }
 
 function initializeUI() {
+    // 1. Theme Check
     if(appData.darkMode) document.body.classList.add('dark-mode');
     
-    // Auto-fix XP based on history if it's missing or zero
+    // 2. Restore XP if missing
     if (!appData.xp || appData.xp === 0) {
         let totalMins = 0;
         if(appData.focusLog) {
@@ -177,7 +178,7 @@ function initializeUI() {
         appData.xp = totalMins * 10;
     }
 
-    // Try-Catch blocks for safety
+    // 3. Load all modules safely
     try { checkNewsReset(); } catch(e) {}
     try { renderSyllabus(); } catch(e) {}
     try { renderGoals(); } catch(e) {}
@@ -200,77 +201,67 @@ function initializeUI() {
     try { renderDopamine(); } catch(e) {}
     try { renderInventory(); } catch(e) {}
     try { renderEvents(); } catch(e) {}
+    try { setupAutosave(); } catch(e) {} // Starts the "Save as you type" listener
     try { document.getElementById('thoughtArea').value = appData.thoughts || ""; } catch(e) {}
 
-    // B.Tech Toggle
+    // 4. Restore Subject & Chapter Selection (THE FIX for dropdowns)
+    // We use a small delay (50ms) to ensure the dropdown list is built before we select an item
+    setTimeout(() => {
+        if(appData.timer && appData.timer.subject) {
+            const subjSelect = document.getElementById('preTimerSubject');
+            const chapSelect = document.getElementById('preTimerChapter');
+            
+            if(subjSelect) {
+                subjSelect.value = appData.timer.subject;
+                
+                // Manually trigger the "populate chapters" function
+                populateTimerChapters(); 
+                
+                // Now set the chapter if we have one
+                if(appData.timer.chapter && chapSelect) {
+                    chapSelect.value = appData.timer.chapter;
+                }
+            }
+        }
+    }, 50);
+
+    // 5. Handle Timer State (THE FIX for 25:00 display)
+    if (appData.timer.active) {
+        const now = Date.now();
+        if (appData.timer.mode === 'timer') {
+            if (appData.timer.endTime && now >= appData.timer.endTime) {
+                // Timer finished while app was closed
+                completeSession();
+            } else {
+                // Timer is still running -> Resume & Update Visuals Immediately
+                runTimerInterval();
+                tick(); // <--- This forces "25:00" to change to the real time instantly
+            }
+        } else {
+            // Stopwatch -> Resume & Update Visuals
+            runTimerInterval();
+            tick(); // <--- This forces the stopwatch to show the correct time instantly
+        }
+    }
+
+    // 6. Final UI Polish
     if(document.getElementById('degreeToggle')) {
         document.getElementById('degreeToggle').checked = appData.degreeMode;
     }
     toggleDegreeMode();
     renderHydration();
     
-    // Stats
-    document.getElementById('deadTimeDisplay').innerText = `${appData.deadTime}m`;
-    document.getElementById('penDisplay').innerText = appData.pensUsed;
-    
-    // Restore Timer Visuals
-    if(appData.timer.subject) {
-        const exists = UPSC_SYLLABUS.some(s => s.subject === appData.timer.subject);
-        if (exists) {
-            document.getElementById('preTimerSubject').value = appData.timer.subject;
-            populateTimerChapters(); 
-            if(appData.timer.chapter) {
-                document.getElementById('preTimerChapter').value = appData.timer.chapter;
-            }
-        }
-    }
+    if(document.getElementById('deadTimeDisplay')) document.getElementById('deadTimeDisplay').innerText = `${appData.deadTime}m`;
+    if(document.getElementById('penDisplay')) document.getElementById('penDisplay').innerText = appData.pensUsed;
     
     updateRank();
-    updateTimerVisuals(); // Instant UI fix for Timer/Stopwatch
-// --- ADD THIS NEW BLOCK HERE ---
-    // Check if a timer was running when the app was closed
-    if (appData.timer.active) {
-        const now = Date.now();
+    updateTimerVisuals(); // Sets the button to "Pause" or "Resume" correctly
 
-        if (appData.timer.mode === 'timer') {
-            // Check if the target time has already passed
-            if (appData.timer.endTime && now >= appData.timer.endTime) {
-                // If yes, finish the session immediately
-                console.log("Timer finished while app was closed.");
-                completeSession(); 
-            } else {
-                // If no, resume the visual countdown
-                console.log("Resuming active timer...");
-                runTimerInterval(); 
-            }
-        } else {
-            // If it's a stopwatch, just resume counting
-            runTimerInterval();
-        }
-    }
-    // -------------------------------
+    // 7. Network Listeners (Auto-upload when internet returns)
+    window.addEventListener('online', () => { console.log("Back Online"); saveData(); });
     setInterval(checkSunset, 60000);
     checkSunset();
 }
-
-// ==========================================
-// NEW SAVING SYSTEM (Copy & Paste this)
-// ==========================================
-let saveTimeout;
-
-// This helper function waits 2 seconds after you stop typing
-function triggerAutoSave() {
-    const statusEl = document.getElementById('saveStatus');
-    if (statusEl) statusEl.innerText = "⏳ Syncing...";
-    
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveData, 2000); // 2 second delay
-window.addEventListener('online', () => { 
-    console.log("Back Online"); 
-    saveData(); // Sync immediately when internet returns
-});
-}
-
 function saveData() {
     // 1. Instant Local Save (Backup)
     localStorage.setItem('upsc_app_data_v19', JSON.stringify(appData));
