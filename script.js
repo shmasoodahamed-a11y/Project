@@ -180,8 +180,13 @@ function initializeUI() {
 
     // 3. Load all modules safely
     try { checkNewsReset(); } catch(e) {}
+    try { renderEvents(); } catch(e) {}
+  try { renderMood(); } catch(e) {}
+try { renderNotToDo(); } catch(e) {}
+    try { renderIdentity(); } catch(e) {}
     try { renderSyllabus(); } catch(e) {}
     try { renderGoals(); } catch(e) {}
+    try { renderYearCompass(); } catch(e) {}
     try { renderLibrary(); } catch(e) {}
     try { updateDashboard(); } catch(e) {}
     try { renderCalendar(); } catch(e) {}
@@ -201,6 +206,9 @@ function initializeUI() {
     try { renderDopamine(); } catch(e) {}
     try { renderInventory(); } catch(e) {}
     try { renderEvents(); } catch(e) {}
+  try { renderDojo(); } catch(e) {}
+try { renderTribe(); } catch(e) {}
+  try { renderLedger(); } catch(e) {}
     try { setupAutosave(); } catch(e) {} // Starts the "Save as you type" listener
     try { document.getElementById('thoughtArea').value = appData.thoughts || ""; } catch(e) {}
 
@@ -313,6 +321,14 @@ function showSection(id) {
     const el = document.getElementById(id);
     if(el) {
         el.classList.add('active');
+      if(id === 'dojo') renderDojo();
+       if(id === 'yearCompass') renderYearCompass();
+      if(id === 'events') renderEvents();
+        if(id === 'tribe') renderTribe();
+       if(id === 'mood') renderMood();
+if(id === 'nottodo') renderNotToDo();
+        if(id === 'ledger') renderLedger();
+        if(id === 'identity') renderIdentity();
         if(id==='analytics') { renderCharts(); renderHistory(); renderSyllabusChart(); }
         if(id==='tests') renderMockTests(); 
         if(id==='retro') renderRetroStats(); 
@@ -861,13 +877,42 @@ function logMood(m) { document.getElementById('moodStatus').innerText = `Mood: $
 function saveGratitude() { const t=document.getElementById('gratitudeText').value; if(t){ if(!appData.gratitude)appData.gratitude=[]; appData.gratitude.unshift({t:t}); saveData(); renderMonk(); } }
 function renderMonk() { const l=document.getElementById('gratitudeList'); if(!appData.gratitude)return; l.innerHTML=''; appData.gratitude.slice(0,3).forEach(g=>{ l.innerHTML+=`<div>${g.t}</div>`; }); }
 
-function addWatchItem() { const t=document.getElementById('watchTitle').value; if(t){ if(!appData.watchlist)appData.watchlist=[]; appData.watchlist.push({t:t,done:false}); saveData(); renderWatchlist(); } }
-function toggleWatch(i) { appData.watchlist[i].watched = !appData.watchlist[i].watched; saveData(); renderWatchlist(); }
+function addWatchItem() { 
+    const t = document.getElementById('watchTitle').value; 
+    const type = document.getElementById('watchType').value; // Get the type (Movie/Book/Football)
+    
+    if(t) { 
+        if(!appData.watchlist) appData.watchlist = []; 
+        // We now save the 'type' along with the title
+        appData.watchlist.push({t: t, type: type, watched: false}); 
+        
+        document.getElementById('watchTitle').value = ''; // Clear input
+        saveData(); 
+        renderWatchlist(); 
+    } 
+}
 function renderWatchlist() { 
-    const d=document.getElementById('watchListContainer'); if(!appData.watchlist)return; d.innerHTML=''; 
-    appData.watchlist.forEach((w,i)=>{ 
+    const d = document.getElementById('watchListContainer'); 
+    if(!appData.watchlist) return; 
+    d.innerHTML = ''; 
+    
+    appData.watchlist.forEach((w,i) => { 
         const style = w.watched ? 'opacity:0.5; text-decoration:line-through;' : '';
-        d.innerHTML+=`<div class="watch-item" style="${style}"><div><strong>${w.t}</strong></div><input type="checkbox" ${w.watched?'checked':''} onchange="toggleWatch(${i})"></div>`; 
+        
+        // Choose the right icon based on the saved type
+        let icon = 'fa-film'; // Default to Movie
+        if (w.type === 'Book') icon = 'fa-book';
+        if (w.type === 'Football') icon = 'fa-futbol'; // Soccer Ball Icon
+        
+        d.innerHTML += `
+            <div class="watch-item" style="${style}; display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i class="fas ${icon}" style="color:var(--primary); width:20px; text-align:center;"></i>
+                    <strong>${w.t}</strong>
+                </div>
+                <input type="checkbox" ${w.watched?'checked':''} onchange="toggleWatch(${i})">
+            </div>
+        `; 
     }); 
 }
 
@@ -977,24 +1022,134 @@ function deletePin(e,i) {
     renderPinList(); 
 }
 
-// --- WHITEBOARD ---
-let canvas, ctx, painting=false;
+// --- WHITEBOARD (SLIDES SYSTEM) ---
+let canvas, ctx, painting = false;
+let currentSlideIndex = 0;
+
 function initWhiteboard() {
-    canvas=document.getElementById('drawingCanvas'); ctx=canvas.getContext('2d');
-    canvas.width=canvas.parentElement.clientWidth; canvas.height=canvas.parentElement.clientHeight;
-    ctx.lineCap='round'; ctx.lineWidth=3; ctx.strokeStyle='#fff';
-    canvas.addEventListener('mousedown', startP); canvas.addEventListener('mouseup', endP); canvas.addEventListener('mousemove', drawP);
-    document.getElementById('brushColor').addEventListener('input', e=>ctx.strokeStyle=e.target.value);
+    canvas = document.getElementById('drawingCanvas');
+    ctx = canvas.getContext('2d');
+    
+    // Set size to match container
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+    
+    // Default Styles
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff'; // Default to white
+    
+    // Event Listeners
+    canvas.addEventListener('mousedown', startP);
+    canvas.addEventListener('mouseup', endP);
+    canvas.addEventListener('mousemove', drawP);
+    
+    // Touch support (for mobile/tablet)
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startP(e.touches[0]); });
+    canvas.addEventListener('touchend', endP);
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); drawP(e.touches[0]); });
+
+    document.getElementById('brushColor').addEventListener('input', e => ctx.strokeStyle = e.target.value);
+
+    // Initialize Slides Data
+    if (!appData.slides || appData.slides.length === 0) {
+        appData.slides = [""]; // Start with 1 empty slide
+    }
+    
+    loadSlide(0); // Load the first slide
 }
-function startP(e){ painting=true; drawP(e); }
-function endP(){ painting=false; ctx.beginPath(); }
-function drawP(e){
-    if(!painting)return;
-    const r=canvas.getBoundingClientRect(); const x=e.clientX-r.left; const y=e.clientY-r.top;
-    ctx.lineTo(x,y); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x,y);
+
+// Drawing Functions
+function startP(e) { painting = true; drawP(e); }
+function endP() { painting = false; ctx.beginPath(); }
+function drawP(e) {
+    if (!painting) return;
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
 }
-function clearCanvas(){ ctx.clearRect(0,0,canvas.width,canvas.height); }
-function downloadCanvas(){ const l=document.createElement('a'); l.download='map.png'; l.href=canvas.toDataURL(); l.click(); }
+
+// Slide Management Functions
+function updateSlideUI() {
+    document.getElementById('slideCounter').innerText = `${currentSlideIndex + 1} / ${appData.slides.length}`;
+}
+
+function saveCurrentSlide() {
+    // Save current canvas pixels to the array
+    appData.slides[currentSlideIndex] = canvas.toDataURL();
+    saveData();
+    
+    // Visual feedback
+    const btn = document.querySelector("button[onclick='saveCurrentSlide()']");
+    const oldText = btn.innerText;
+    btn.innerText = "Saved!";
+    setTimeout(() => btn.innerText = oldText, 1000);
+}
+
+function loadSlide(index) {
+    // 1. Validate index
+    if (index < 0) index = 0;
+    if (index >= appData.slides.length) index = appData.slides.length - 1;
+    currentSlideIndex = index;
+
+    // 2. Clear Canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 3. Load Image (if exists)
+    const data = appData.slides[currentSlideIndex];
+    if (data && data.length > 10) { // Check if it's a real image string
+        const img = new Image();
+        img.onload = function() {
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = data;
+    }
+    
+    updateSlideUI();
+}
+
+function newSlide() {
+    saveCurrentSlide(); // Auto-save current work first
+    appData.slides.push(""); // Add new empty slot
+    loadSlide(appData.slides.length - 1); // Go to it
+    saveData();
+}
+
+function changeSlide(direction) {
+    saveCurrentSlide(); // Auto-save before leaving
+    let newIndex = currentSlideIndex + direction;
+    
+    // Bounds check
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= appData.slides.length) newIndex = appData.slides.length - 1;
+    
+    loadSlide(newIndex);
+}
+
+function deleteSlide() {
+    if (confirm("Delete this slide?")) {
+        appData.slides.splice(currentSlideIndex, 1);
+        
+        // Never allow 0 slides
+        if (appData.slides.length === 0) appData.slides.push("");
+        
+        // Adjust index if we deleted the last one
+        if (currentSlideIndex >= appData.slides.length) {
+            currentSlideIndex = appData.slides.length - 1;
+        }
+        
+        saveData();
+        loadSlide(currentSlideIndex);
+    }
+}
+
+function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+function downloadCanvas() { const l = document.createElement('a'); l.download = `slide_${currentSlideIndex+1}.png`; l.href = canvas.toDataURL(); l.click(); }
 
 // --- CONSTITUTION ---
 function searchConstitution() {
@@ -1076,25 +1231,38 @@ function renderSyllabusChart() {
 }
 
 function renderSyllabus() {
-    const container = document.getElementById('syllabus-container'); container.innerHTML = '';
+    const container = document.getElementById('syllabus-container'); 
+    container.innerHTML = '';
+    
     let html = '<table><thead><tr><th>Topic</th><th width="30">St</th><th width="30">PYQ</th><th width="80">Rev</th><th width="40">Res</th></tr></thead><tbody>';
-    UPSC_SYLLABUS.forEach((sub,sIdx) => {
+    
+    UPSC_SYLLABUS.forEach((sub, sIdx) => {
         html += `<tr class="subject-header"><td colspan="5">${sub.subject}</td></tr>`;
-        sub.chapters.forEach((chap,cIdx) => {
+        
+        sub.chapters.forEach((chap, cIdx) => {
             const chapId = `chap-${sIdx}-${cIdx}`;
+            
+            // --- THE FIX: Check if this chapter was left open ---
+            const isOpen = appData.expanded && appData.expanded.includes(chapId);
+            const visibilityClass = isOpen ? 'visible' : ''; 
+            // ---------------------------------------------------
+
             html += `<tr class="chapter-row" onclick="toggleChapter('${chapId}')"><td colspan="5"><i class="fas fa-chevron-right" id="icon-${chapId}"></i> ${chap.title} <small>(${chap.topics.length})</small></td></tr>`;
+            
             chap.topics.forEach(top => {
                 const key = `${sub.subject}-${chap.title}-${top}`;
-                const safeKey = key.replace(/'/g, "\\'"); // ESCAPE QUOTES
+                const safeKey = key.replace(/'/g, "\\'"); // Escape quotes
                 const data = appData.syllabus[key] || {status:0, pyq:false, rev:0};
                 const hasNote = (data.note || data.link) ? 'has-note' : '';
-                html += `<tr class="topic-row ${chapId}"><td class="topic-name">${top}</td><td><div class="status-btn status-${data.status}" onclick="cycleStatus('${safeKey}', this)"></div></td><td><input type="checkbox" onchange="togglePYQ('${safeKey}')" ${data.pyq?'checked':''}></td><td><div class="rev-box"><button class="rev-btn" onclick="updateRev('${safeKey}', -1, this)">-</button><span>${data.rev||0}</span><button class="rev-btn" onclick="updateRev('${safeKey}', 1, this)">+</button></div></td><td style="text-align:center;"><button class="note-btn ${hasNote}" onclick="openNoteModal('${safeKey}')"><i class="fas fa-sticky-note"></i></button></td></tr>`;
+                
+                // Add the 'visibilityClass' here so it stays open if needed
+                html += `<tr class="topic-row ${chapId} ${visibilityClass}"><td class="topic-name">${top}</td><td><div class="status-btn status-${data.status}" onclick="cycleStatus('${safeKey}', this)"></div></td><td><input type="checkbox" onchange="togglePYQ('${safeKey}')" ${data.pyq?'checked':''}></td><td><div class="rev-box"><button class="rev-btn" onclick="updateRev('${safeKey}', -1, this)">-</button><span>${data.rev||0}</span><button class="rev-btn" onclick="updateRev('${safeKey}', 1, this)">+</button></div></td><td style="text-align:center;"><button class="note-btn ${hasNote}" onclick="openNoteModal('${safeKey}')"><i class="fas fa-sticky-note"></i></button></td></tr>`;
             });
         });
     });
-    html += '</tbody></table>'; container.innerHTML = html;
+    html += '</tbody></table>'; 
+    container.innerHTML = html;
 }
-
 function cycleStatus(key, btn) { if(!appData.syllabus[key]) appData.syllabus[key] = {status:0, pyq:false, rev:0}; appData.syllabus[key].status = (appData.syllabus[key].status + 1) % 4; btn.className = `status-btn status-${appData.syllabus[key].status}`; saveData(); updateDashboard(); renderSyllabusChart(); }
 function togglePYQ(key) { if(!appData.syllabus[key]) appData.syllabus[key]={status:0, rev:0}; appData.syllabus[key].pyq = !appData.syllabus[key].pyq; saveData(); }
 function updateRev(key, change, btn) { if (!appData.syllabus[key]) appData.syllabus[key] = { status: 0, pyq: false, rev: 0 }; let val = (appData.syllabus[key].rev || 0) + change; if(val < 0) val = 0; appData.syllabus[key].rev = val; saveData(); btn.parentElement.querySelector('span').innerText = val; }
@@ -1266,11 +1434,69 @@ function deleteTest(i) { appData.tests.splice(i, 1); saveData(); renderMockTests
 function nextMathQuestion() { const ops = ['+', '-', '*']; const op = ops[Math.floor(Math.random()*3)]; let a, b; if(op === '*') { a = Math.floor(Math.random()*15)+2; b = Math.floor(Math.random()*10)+2; } else { a = Math.floor(Math.random()*100); b = Math.floor(Math.random()*100); } currentAns = eval(`${a} ${op} ${b}`); document.getElementById('mathQuestion').innerText = `${a} ${op} ${b} = ?`; }
 function checkMathAnswer(e) { if(e.key === 'Enter') { if(parseInt(e.target.value) === currentAns) { e.target.value = ''; nextMathQuestion(); } else { e.target.style.borderColor = 'red'; setTimeout(() => e.target.style.borderColor = '#ccc', 200); } } }
 function calc(key) { const disp = document.getElementById('calcInput'); if(key === 'C') disp.value = ''; else if(key === '=') { try { disp.value = eval(disp.value); } catch { disp.value = 'Error'; } } else disp.value += key; }
-function toggleChapter(id) { const r=document.querySelectorAll('.'+id); r.forEach(e=>e.classList.toggle('visible')); }
+function toggleChapter(id) {
+    // 1. Initialize the storage array if missing
+    if (!appData.expanded) appData.expanded = [];
+
+    // 2. Add or Remove the Chapter ID from our "Open List"
+    const index = appData.expanded.indexOf(id);
+    if (index > -1) {
+        appData.expanded.splice(index, 1); // It was open, so remove it (Close)
+    } else {
+        appData.expanded.push(id); // It was closed, so add it (Open)
+    }
+
+    // 3. Update the UI instantly
+    const rows = document.querySelectorAll('.' + id);
+    rows.forEach(e => e.classList.toggle('visible'));
+    
+    // 4. Save this preference so it stays open next time
+    saveData();
+}
 function openNoteModal(k) { document.getElementById('noteTopicTitle').innerText=k.split('-')[2]; document.getElementById('noteText').value=appData.syllabus[k]?.note||''; document.getElementById('noteLink').value=appData.syllabus[k]?.link||''; document.getElementById('noteModal').dataset.key=k; document.getElementById('noteModal').style.display='flex'; }
 function saveNote() { const k=document.getElementById('noteModal').dataset.key; if(!appData.syllabus[k]) appData.syllabus[k]={status:0}; appData.syllabus[k].note=document.getElementById('noteText').value; appData.syllabus[k].link=document.getElementById('noteLink').value; saveData(); document.getElementById('noteModal').style.display='none'; renderSyllabus(); }
 function closeModal(id) { document.getElementById(id).style.display='none'; }
-function renderLibrary() { const div = document.getElementById('libraryContainer'); div.innerHTML = ''; appData.library.forEach((b, i) => { const pct = Math.round((b.read / b.pages) * 100); div.innerHTML += `<div class="book-item"><div style="display:flex; justify-content:space-between;"><strong>${b.title}</strong> <small>${b.read}/${b.pages}</small></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div style="margin-top:5px; display:flex; gap:5px;"><button onclick="updateBook(${i}, 10)" style="font-size:0.7rem; padding:2px 5px;">+10</button><button onclick="updateBook(${i}, 50)" style="font-size:0.7rem; padding:2px 5px;">+50</button><button onclick="deleteBook(${i})" style="font-size:0.7rem; background:none; color:red; padding:2px;">Del</button></div></div>`; }); }
+// --- NEW LIBRARY FUNCTION (With Read Button) ---
+function renderLibrary() {
+    const list = document.getElementById('bookList');
+    if (!list) return; 
+    
+    list.innerHTML = ''; // Clear the list to rebuild it
+
+    // Initialize data if missing
+    if (!appData.library) appData.library = [];
+
+    // Loop through every book and create the HTML card
+    appData.library.forEach((book, index) => {
+        
+        // 1. Determine Status Color
+        let statusColor = '#3b82f6'; // Blue
+        if(book.status === 'Completed') statusColor = '#10b981'; // Green
+        if(book.status === 'To Read') statusColor = '#f59e0b'; // Orange
+
+        // 2. Create the HTML for the Book Card
+        list.innerHTML += `
+            <div class="book-card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--bg); border-bottom:1px solid var(--border);">
+                
+                <div>
+                    <h4 style="margin:0; font-size:1rem;">${book.title}</h4>
+                    <small style="color:gray;">${book.author} • <span style="color:${statusColor}">${book.status}</span></small>
+                </div>
+                
+                <div style="display:flex; gap:10px;">
+                    
+                    <button onclick="openPDFLoader('${book.title}')" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.9rem;" title="Open PDF">
+                        <i class="fas fa-book-open"></i> Read
+                    </button>
+                    
+                    <button onclick="deleteBook(${index})" style="background:none; color:var(--text-muted); border:none; cursor:pointer;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+}
 function addBook() { const t = document.getElementById('bookTitle').value; const p = document.getElementById('bookPages').value; if(t && p) { appData.library.push({title:t, pages:parseInt(p), read:0}); saveData(); renderLibrary(); } }
 function updateBook(i, p) { appData.library[i].read = Math.min(appData.library[i].read + p, appData.library[i].pages); saveData(); renderLibrary(); }
 function deleteBook(i) { appData.library.splice(i,1); saveData(); renderLibrary(); }
@@ -1280,3 +1506,458 @@ function renderHeatmap() { const d=document.getElementById('heatmap'); d.innerHT
 function addFlashcard() { const f = document.getElementById('fcFront').value; const b = document.getElementById('fcBack').value; if(f && b) { appData.flashcards.push({front: f, back: b}); document.getElementById('fcFront').value = ''; document.getElementById('fcBack').value = ''; saveData(); renderFlashcard(); alert("Card Added!"); } }
 function saveMainsDraft() { const q = document.getElementById('mainsQuestion').value; if(!q) { alert("Enter title"); return; } appData.mainsDrafts.push({q, i: document.getElementById('mainsIntro').value, b: document.getElementById('mainsBody').value, c: document.getElementById('mainsConc').value, date: new Date().toISOString()}); saveData(); alert("Draft Saved!"); }
 window.onclick = e => { if(e.target.classList.contains('modal')) e.target.style.display='none'; }
+// ==========================================
+// NEW LIFE APPS (Dojo & Tribe)
+// ==========================================
+
+// --- THE DOJO (Fitness) ---
+function renderDojo() {
+    const container = document.getElementById('dojoLog');
+    if (!container) return; // Stop if HTML is missing
+    container.innerHTML = '';
+    
+    if (!appData.dojo) appData.dojo = [];
+    
+    // Show last 5 workouts (newest first)
+    appData.dojo.slice().reverse().slice(0, 5).forEach((item, i) => {
+        const date = new Date(item.date).toLocaleDateString();
+        container.innerHTML += `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
+                <span><b>${item.ex}</b>: ${item.reps}</span>
+                <span style="color:gray; font-size:0.8rem;">${date}</span>
+            </div>
+        `;
+    });
+}
+
+function logExercise() {
+    const ex = document.getElementById('exerciseInput').value;
+    const reps = document.getElementById('repsInput').value;
+    if (ex) {
+        if (!appData.dojo) appData.dojo = [];
+        appData.dojo.push({ ex: ex, reps: reps, date: Date.now() });
+        
+        document.getElementById('exerciseInput').value = '';
+        document.getElementById('repsInput').value = '';
+        saveData();
+        renderDojo();
+    }
+}
+
+// --- THE TRIBE (Relationships) ---
+function renderTribe() {
+    const container = document.getElementById('tribeList');
+    if (!container) return;
+    container.innerHTML = '';
+    
+    if (!appData.tribe) appData.tribe = [];
+    
+    appData.tribe.forEach((p, i) => {
+        // Calculate days since last contact
+        const last = p.lastContact || 0;
+        const diff = Date.now() - last;
+        const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+        
+        // Green if recent, Red if overdue
+        const isOverdue = daysAgo > p.freq;
+        const color = isOverdue ? 'var(--danger)' : 'var(--success)';
+        const status = isOverdue ? `Call! (${daysAgo}d)` : `${daysAgo}d ago`;
+        
+        container.innerHTML += `
+            <div style="border:1px solid ${color}; padding:10px; border-radius:8px; text-align:center; position:relative;">
+                <button onclick="deletePerson(${i})" style="position:absolute; top:2px; right:5px; background:none; color:gray; padding:0; cursor:pointer;">&times;</button>
+                <div style="font-weight:bold; margin-bottom:5px;">${p.name}</div>
+                <div style="font-size:0.8rem; margin-bottom:8px; color:${color}; font-weight:bold;">${status}</div>
+                <button onclick="contactPerson(${i})" style="font-size:0.8rem; padding:4px 8px; cursor:pointer;">Mark Contacted</button>
+            </div>
+        `;
+    });
+}
+
+function addPerson() {
+    const name = document.getElementById('personInput').value;
+    const freq = document.getElementById('freqInput').value || 7; // Default 7 days
+    if (name) {
+        if (!appData.tribe) appData.tribe = [];
+        appData.tribe.push({ name: name, freq: parseInt(freq), lastContact: Date.now() });
+        
+        document.getElementById('personInput').value = '';
+        saveData();
+        renderTribe();
+    }
+}
+
+function contactPerson(index) {
+    appData.tribe[index].lastContact = Date.now();
+    saveData();
+    renderTribe();
+}
+
+function deletePerson(index) {
+    if(confirm("Remove this person?")) {
+        appData.tribe.splice(index, 1);
+        saveData();
+        renderTribe();
+    }
+}
+// --- THE LEDGER (Lent/Borrowed) ---
+function addToLedger() {
+    const type = document.getElementById('ledgerType').value;
+    const person = document.getElementById('ledgerPerson').value;
+    const item = document.getElementById('ledgerItem').value;
+    
+    if(person && item) {
+        if(!appData.ledger) appData.ledger = [];
+        appData.ledger.unshift({
+            type: type,
+            person: person,
+            item: item,
+            date: new Date().toLocaleDateString()
+        });
+        
+        document.getElementById('ledgerPerson').value = '';
+        document.getElementById('ledgerItem').value = '';
+        saveData();
+        renderLedger();
+    }
+}
+
+function renderLedger() {
+    const container = document.getElementById('ledgerList');
+    if(!container) return;
+    container.innerHTML = '';
+    
+    if(!appData.ledger) appData.ledger = [];
+    
+    if(appData.ledger.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:gray; padding:20px;">No active debts. You are free!</div>';
+        return;
+    }
+
+    appData.ledger.forEach((l, i) => {
+        // Green if you gave (Asset), Red if you took (Liability)
+        const isGave = l.type === 'gave';
+        const color = isGave ? 'var(--success)' : 'var(--danger)';
+        const arrow = isGave ? '➔' : '⬅️';
+        const phrase = isGave ? `You gave <b>${l.person}</b>` : `You took from <b>${l.person}</b>`;
+        
+        container.innerHTML += `
+            <div style="background:var(--bg); padding:10px; border-left:4px solid ${color}; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:0.9rem; color:gray; margin-bottom:2px;">${l.date}</div>
+                    <div>${phrase}: <strong style="font-size:1.1rem;">${l.item}</strong></div>
+                </div>
+                <button onclick="settleLedger(${i})" style="font-size:0.8rem; background:transparent; border:1px solid var(--text-muted); color:var(--text); padding:4px 8px;">Settle</button>
+            </div>
+        `;
+    });
+}
+
+function settleLedger(i) {
+    if(confirm("Mark this as settled/returned?")) {
+        appData.ledger.splice(i, 1);
+        saveData();
+        renderLedger();
+    }
+}
+// --- YEAR COMPASS ---
+function renderYearCompass() {
+    const grid = document.getElementById('weeksGrid');
+    const percentDisplay = document.getElementById('yearPercent');
+    if(!grid) return;
+    
+    grid.innerHTML = '';
+    
+    // 1. Calculate Time
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1); // Jan 1st
+    const diff = now - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    
+    // 2. Calculate Percentage
+    const percent = ((dayOfYear / 365) * 100).toFixed(1);
+    percentDisplay.innerText = `${percent}%`;
+    
+    // 3. Render 52 Weeks
+    const currentWeek = Math.floor(dayOfYear / 7); // 0 to 51
+    
+    for(let i = 0; i < 52; i++) {
+        let style = '';
+        let title = `Week ${i+1}`;
+        
+        if (i < currentWeek) {
+            // Past: Faded Gray
+            style = 'background:var(--text); opacity:0.2;'; 
+            title += " (Gone)";
+        } else if (i === currentWeek) {
+            // Present: Bright Primary Color
+            style = 'background:var(--primary); box-shadow: 0 0 10px var(--primary); transform:scale(1.2);'; 
+            title += " (Now)";
+        } else {
+            // Future: Empty Border
+            style = 'border:1px solid var(--border);'; 
+            title += " (Remaining)";
+        }
+        
+        grid.innerHTML += `<div title="${title}" style="height:15px; border-radius:3px; ${style}"></div>`;
+    }
+}
+// --- EVENTS (Countdown) ---
+function addEvent() {
+    const name = document.getElementById('eventName').value;
+    const date = document.getElementById('eventDate').value;
+
+    if(name && date) {
+        if(!appData.events) appData.events = [];
+        appData.events.push({ name, date });
+        document.getElementById('eventName').value = '';
+        saveData();
+        renderEvents();
+    }
+}
+
+function renderEvents() {
+    const container = document.getElementById('eventList');
+    if(!container) return;
+    container.innerHTML = '';
+
+    if(!appData.events) appData.events = [];
+
+    // Sort by date (Soonest event comes first)
+    appData.events.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    appData.events.forEach((e, i) => {
+        const target = new Date(e.date);
+        const now = new Date();
+        
+        // Calculate difference in time
+        const diff = target - now;
+        // Convert to days (rounding up)
+        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+        let statusHtml = '';
+        let color = 'var(--primary)';
+
+        if(days < 0) {
+            statusHtml = `<span style="color:gray;">Done (${Math.abs(days)}d ago)</span>`;
+            color = 'gray';
+        } else if (days === 0) {
+            statusHtml = `<span style="color:var(--danger); font-weight:bold;">TODAY!</span>`;
+            color = 'var(--danger)';
+        } else {
+            statusHtml = `<span style="font-size:1.5rem; font-weight:bold; color:var(--primary);">${days}</span> <small>Days Left</small>`;
+        }
+
+        container.innerHTML += `
+            <div style="background:var(--bg); border-left:4px solid ${color}; padding:15px; border-radius:4px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                <div>
+                    <div style="font-weight:bold; font-size:1.1rem;">${e.name}</div>
+                    <div style="font-size:0.8rem; opacity:0.7;">${target.toDateString()}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div>${statusHtml}</div>
+                    <button onclick="deleteEvent(${i})" style="font-size:0.7rem; color:red; background:none; border:none; cursor:pointer; margin-top:5px;">Remove</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function deleteEvent(i) {
+    if(confirm("Delete this countdown?")) {
+        appData.events.splice(i, 1);
+        saveData();
+        renderEvents();
+    }
+}// --- IDENTITY (My Numbers) ---
+function addIdentity() {
+    const label = document.getElementById('idLabel').value;
+    const val = document.getElementById('idValue').value;
+
+    if(label && val) {
+        if(!appData.identity) appData.identity = [];
+        appData.identity.push({ label, val });
+        
+        document.getElementById('idLabel').value = '';
+        document.getElementById('idValue').value = '';
+        saveData();
+        renderIdentity();
+    }
+}
+
+function renderIdentity() {
+    const container = document.getElementById('identityList');
+    if(!container) return;
+    container.innerHTML = '';
+
+    if(!appData.identity) appData.identity = [];
+
+    appData.identity.forEach((item, i) => {
+        container.innerHTML += `
+            <div style="background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="overflow:hidden;">
+                    <div style="font-size:0.8rem; color:gray; text-transform:uppercase; letter-spacing:1px;">${item.label}</div>
+                    <div style="font-weight:bold; font-size:1.1rem; font-family:monospace;">${item.val}</div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button onclick="copyIdentity('${item.val}')" style="background:var(--primary); padding:5px 10px; font-size:0.9rem;" title="Copy"><i class="fas fa-copy"></i></button>
+                    <button onclick="deleteIdentity(${i})" style="background:none; color:red; border:none;">&times;</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function deleteIdentity(i) {
+    if(confirm("Delete this ID?")) {
+        appData.identity.splice(i, 1);
+        saveData();
+        renderIdentity();
+    }
+}
+
+function copyIdentity(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Copied: " + text);
+    });
+}// --- MOOD GRID ---
+function logMood(rating) {
+    if(!appData.moods) appData.moods = {};
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    appData.moods[today] = rating;
+    saveData();
+    renderMood();
+}
+
+function renderMood() {
+    const container = document.getElementById('moodGrid');
+    if(!container) return;
+    container.innerHTML = '';
+    
+    if(!appData.moods) appData.moods = {};
+    
+    // Generate last 30 days
+    for(let i=29; i>=0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateKey = d.toISOString().split('T')[0];
+        const rating = appData.moods[dateKey] || 0;
+        
+        let color = 'var(--bg)'; // Default (Empty)
+        if(rating === 1) color = '#ef4444'; // Red
+        if(rating === 2) color = '#f97316'; // Orange
+        if(rating === 3) color = '#eab308'; // Yellow
+        if(rating === 4) color = '#84cc16'; // Light Green
+        if(rating === 5) color = '#22c55e'; // Green
+        
+        // Border for "Today"
+        const border = (i === 0) ? 'border: 2px solid var(--text);' : 'border: 1px solid var(--border);';
+        
+        container.innerHTML += `
+            <div title="${dateKey}: ${rating}/5" style="aspect-ratio:1; background:${color}; border-radius:4px; ${border}"></div>
+        `;
+    }
+}
+
+
+// --- NOT-TO-DO LIST ---
+function addNotToDo() {
+    const text = document.getElementById('ntdInput').value;
+    if(text) {
+        if(!appData.nottodo) appData.nottodo = [];
+        appData.nottodo.push({ text: text, lastCheck: null, streak: 0 });
+        document.getElementById('ntdInput').value = '';
+        saveData();
+        renderNotToDo();
+    }
+}
+
+function renderNotToDo() {
+    const container = document.getElementById('ntdList');
+    if(!container) return;
+    container.innerHTML = '';
+    
+    if(!appData.nottodo) appData.nottodo = [];
+    
+    const todayStr = new Date().toDateString();
+
+    appData.nottodo.forEach((item, i) => {
+        const isDoneToday = item.lastCheck === todayStr;
+        const btnColor = isDoneToday ? 'var(--success)' : 'var(--bg)';
+        const btnText = isDoneToday ? 'Success!' : 'I avoided this today';
+        
+        container.innerHTML += `
+            <div style="background:var(--bg); padding:15px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border);">
+                <div>
+                    <div style="font-weight:bold; color:var(--danger);"><i class="fas fa-ban"></i> ${item.text}</div>
+                    <div style="font-size:0.8rem; color:gray;">Streak: <span style="color:var(--text); font-weight:bold;">${item.streak} days</span></div>
+                </div>
+                <div style="text-align:right;">
+                     <button onclick="checkNotToDo(${i})" style="font-size:0.8rem; padding:5px 10px; background:${btnColor}; border:1px solid var(--border);">${btnText}</button>
+                     <div onclick="deleteNotToDo(${i})" style="font-size:0.7rem; color:red; margin-top:5px; cursor:pointer;">Remove</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function checkNotToDo(i) {
+    const todayStr = new Date().toDateString();
+    // Only allow checking if not already done today
+    if(appData.nottodo[i].lastCheck !== todayStr) {
+        appData.nottodo[i].lastCheck = todayStr;
+        appData.nottodo[i].streak += 1;
+        saveData();
+        renderNotToDo();
+        
+        // Celebration effect
+        alert("Good job! Discipline +1");
+    }
+}
+
+function deleteNotToDo(i) {
+    if(confirm("Remove this rule?")) {
+        appData.nottodo.splice(i, 1);
+        saveData();
+        renderNotToDo();
+    }
+}// ==========================================
+// PDF READER LOGIC
+// ==========================================
+
+let currentBookTitle = "";
+
+// 1. Trigger the File Picker
+function openPDFLoader(title) {
+    currentBookTitle = title;
+    // Simulate a click on the hidden file input
+    document.getElementById('pdfInput').click();
+}
+
+// 2. Render the PDF when file is selected
+function renderPDF(input) {
+    const file = input.files[0];
+    if (file) {
+        // Create a temporary URL for the file
+        const fileURL = URL.createObjectURL(file);
+        
+        // Load it into the iframe
+        const frame = document.getElementById('pdfFrame');
+        frame.src = fileURL;
+        
+        // Update Title
+        document.getElementById('pdfTitle').innerText = "Reading: " + currentBookTitle;
+        
+        // Show the Full Screen Reader
+        document.getElementById('pdfReader').style.display = 'flex';
+    }
+}
+
+// 3. Close Reader
+function closePDF() {
+    document.getElementById('pdfReader').style.display = 'none';
+    document.getElementById('pdfFrame').src = ''; // Clear memory
+    document.getElementById('pdfInput').value = ''; // Reset input
+}
