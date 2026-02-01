@@ -189,18 +189,153 @@
         <div id="calendar" class="section"><h2>Planner</h2><div class="calendar-header"><button onclick="changeMonth(-1)"><</button><h3 id="monthYearDisplay"></h3><button onclick="changeMonth(1)">></button></div><div class="calendar-grid" id="calendarGrid"></div></div>
         
         <div id="chef" class="section"><h2><i class="fas fa-utensils"></i> The Chef</h2><p style="color:gray; font-size:0.9rem;">Plan your fuel. Reduce decision fatigue.</p><br><div class="card"><div id="mealGrid" style="display:grid; grid-template-columns: 1fr 2fr 2fr; gap:10px;"></div></div></div>
+  <div id="dojo" class="section">
+    <h2><i class="fas fa-dumbbell"></i> The Dojo</h2>
+    <div class="card">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="exerciseInput" placeholder="Activity (e.g. Pushups)" class="modal-input">
+            <input type="text" id="repsInput" placeholder="Count (e.g. 20)" class="modal-input" style="width:80px;">
+            <button onclick="logExercise()">Log</button>
+        </div>
+        <div id="dojoLog" style="max-height:150px; overflow-y:auto;"></div>
+    </div>
+</div>
+
+<div id="tribe" class="section">
+    <h2><i class="fas fa-users"></i> The Tribe</h2>
+    <div class="card">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="personInput" placeholder="Name (e.g. Mom)" class="modal-input">
+            <input type="number" id="freqInput" placeholder="Days" title="Call every X days" class="modal-input" style="width:60px;">
+            <button onclick="addPerson()">Add</button>
+        </div>
+        <div id="tribeList" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px;"></div>
+    </div>
+</div>  <div id="yearCompass" class="section">
+    <h2><i class="fas fa-calendar-alt"></i> Year Compass</h2>
+    <div class="card">
+        <div style="text-align:center; margin-bottom:20px;">
+            <div style="font-size:3rem; font-weight:bold; color:var(--primary);" id="yearPercent">0%</div>
+            <div style="color:gray;">of 2026 is gone</div>
+        </div>
+
+        <div id="weeksGrid" style="display:grid; grid-template-columns: repeat(13, 1fr); gap:6px; margin-bottom:20px;"></div>
+        
+        <div style="display:flex; justify-content:center; gap:20px; font-size:0.8rem; color:gray;">
+            <div style="display:flex; align-items:center; gap:5px;">
+                <div style="width:12px; height:12px; background:var(--text); opacity:0.2; border-radius:2px;"></div> Past
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+                <div style="width:12px; height:12px; background:var(--primary); border-radius:2px;"></div> Now
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+                <div style="width:12px; height:12px; border:1px solid var(--border); border-radius:2px;"></div> Future
+            </div>
+        </div>
+        
+        <p style="text-align:center; margin-top:20px; font-style:italic; opacity:0.7; font-size:0.9rem;">
+            "Time is the only capital that any human being has, and the only thing he cannot afford to lose."
+        </p>
+    </div>
+</div>
+          
+  <div id="ledger" class="section">
+    <h2><i class="fas fa-handshake"></i> The Ledger</h2>
+    <div class="card">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <select id="ledgerType" class="modal-input" style="width:110px; font-weight:bold;">
+                <option value="gave">I Gave ➔</option>
+                <option value="took">I Took ⬅️</option>
+            </select>
+            <input type="text" id="ledgerPerson" placeholder="Who? (e.g. Rahul)" class="modal-input">
+            <input type="text" id="ledgerItem" placeholder="What? (e.g. ₹500)" class="modal-input">
+            <button onclick="addToLedger()">Save</button>
+        </div>
+        
+        <div id="ledgerList" style="display:grid; gap:10px; max-height:400px; overflow-y:auto;"></div>
+    </div>
+</div>        
+                   
         <div id="dopamine" class="section"><h2><i class="fas fa-mobile-alt"></i> Dopamine Log</h2><p style="color:gray; font-size:0.9rem;">Track the waste. Reclaim the time.</p><br><div class="card"><div style="display:flex; gap:10px;"><input type="text" id="distractionInput" placeholder="Activity (e.g. Insta)..." class="modal-input"><input type="number" id="distractionTime" placeholder="Mins" class="modal-input" style="width:80px;"><button onclick="logDistraction()">Log</button></div><h3 style="margin-top:20px; color:var(--danger);">Total Wasted Today: <span id="totalWasted">0</span> mins</h3><div id="distractionList" style="margin-top:10px;"></div></div></div>
+          <div id="mood" class="section">
+    <h2><i class="fas fa-smile"></i> Mood Grid</h2>
+    <div class="card">
+        <div style="text-align:center; margin-bottom:15px;">
+            <p>How was your day?</p>
+            <div style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
+                <button onclick="logMood(1)" style="background:#ef4444; font-size:1.2rem;">😭</button>
+                <button onclick="logMood(2)" style="background:#f97316; font-size:1.2rem;">😞</button>
+                <button onclick="logMood(3)" style="background:#eab308; font-size:1.2rem;">😐</button>
+                <button onclick="logMood(4)" style="background:#84cc16; font-size:1.2rem;">🙂</button>
+                <button onclick="logMood(5)" style="background:#22c55e; font-size:1.2rem;">😁</button>
+            </div>
+        </div>
+        <div style="font-size:0.8rem; color:gray; margin-bottom:5px;">Last 30 Days:</div>
+        <div id="moodGrid" style="display:grid; grid-template-columns: repeat(10, 1fr); gap:5px;"></div>
+    </div>
+</div>
+
+<div id="nottodo" class="section">
+    <h2><i class="fas fa-ban"></i> Not-To-Do List</h2>
+    <div class="card">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="ntdInput" placeholder="I will NOT... (e.g. use IG)" class="modal-input">
+            <button onclick="addNotToDo()">Add</button>
+        </div>
+        <div id="ntdList" style="display:grid; gap:10px;"></div>
+        <p style="font-size:0.8rem; color:gray; margin-top:15px; text-align:center;">
+            "Success is often what you <span style="color:var(--danger);">don't</span> do."
+        </p>
+    </div>
+</div>
         <div id="inventory" class="section"><h2><i class="fas fa-shopping-cart"></i> Inventory</h2><p style="color:gray; font-size:0.9rem;">Never run out of essentials.</p><br><div class="card"><div style="display:flex; gap:10px;"><input type="text" id="invInput" placeholder="Item (e.g. Toothpaste)..." class="modal-input"><button onclick="addInventory()">Add</button></div><div id="invList" style="margin-top:20px; display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:10px;"></div></div></div>
+          <div id="identity" class="section">
+    <h2><i class="fas fa-id-card"></i> Identity</h2>
+    <div class="card">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="idLabel" placeholder="Label (e.g. Roll No)..." class="modal-input">
+            <input type="text" id="idValue" placeholder="Number/Code..." class="modal-input">
+            <button onclick="addIdentity()">Add</button>
+        </div>
+        <div id="identityList" style="display:grid; grid-template-columns: 1fr; gap:10px;"></div>
+    </div>
+</div>
         <div id="events" class="section"><h2><i class="fas fa-calendar-star"></i> Event Horizon</h2><p style="color:gray; font-size:0.9rem;">Life beyond the books.</p><br><div class="card"><div style="display:flex; gap:10px;"><input type="text" id="eventTitle" placeholder="Event Name..." class="modal-input"><input type="date" id="eventDate" class="modal-input"><button onclick="addEvent()">Set</button></div><div id="eventList" style="margin-top:20px;"></div></div></div>
         <div id="thoughtpad" class="section"><h2><i class="fas fa-sticky-note"></i> Thought Pad</h2><p style="color:gray; font-size:0.9rem;">Clear your mind. Dump it here.</p><br><div class="card" style="height:70vh;"><textarea id="thoughtArea" style="width:100%; height:100%; background:transparent; color:var(--text-main); border:none; resize:none; font-size:1.1rem; line-height:1.6;" placeholder="Type anything... It auto-saves." oninput="saveThoughts()"></textarea></div></div>
-        
+        <div id="events" class="section">
+    <h2><i class="fas fa-hourglass-half"></i> Countdown</h2>
+    <div class="card">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="eventName" placeholder="Event (e.g. Prelims)..." class="modal-input">
+            <input type="date" id="eventDate" class="modal-input">
+            <button onclick="addEvent()">Add</button>
+        </div>
+        <div id="eventList" style="display:grid; gap:10px;"></div>
+    </div>
+</div>
         <div id="treasury" class="section"><h2>Treasury</h2><div class="card"><h3>Budget: ₹<span id="budgetDisplay">0</span></h3><button onclick="setBudget()">Set</button><div class="xp-bar"><div id="budgetBar" class="xp-fill"></div></div></div><div class="card" style="margin-top:20px;"><input type="number" id="expenseAmount" placeholder="Amount" class="modal-input"><input type="text" id="expenseDesc" placeholder="Item" class="modal-input"><button onclick="addExpense()">Add</button><div id="expenseList"></div></div></div>
         <div id="bio" class="section"><h2>Bio-Rhythm</h2><div class="card"><input type="number" id="sleepHours" placeholder="Sleep Hrs"><button onclick="logSleep()">Log</button> <span id="avgSleep"></span></div><div class="card" style="margin-top:10px;"><input type="number" id="weightInput" placeholder="Weight (kg)" onchange="saveBio()"></div></div>
         <div id="monk" class="section"><h2>Monk Mode</h2><div class="card"><h3>Mood</h3><button onclick="logMood('😡')">😡</button><button onclick="logMood('😐')">😐</button><button onclick="logMood('🙂')">🙂</button><button onclick="logMood('🤩')">🤩</button><div id="moodStatus"></div></div><div class="card" style="margin-top:10px;"><textarea id="gratitudeText" placeholder="Grateful for..." class="modal-input"></textarea><button onclick="saveGratitude()">Save</button><div id="gratitudeList"></div></div></div>
-        <div id="watchlist" class="section"><h2>Watchlist</h2><div class="card"><input type="text" id="watchTitle" placeholder="Title"><select id="watchType"><option>Movie</option><option>Book</option></select><button onclick="addWatchItem()">Add</button><div id="watchListContainer"></div></div></div>
+        <div id="watchlist" class="section"><h2>Watchlist</h2><div class="card"><input type="text" id="watchTitle" placeholder="Title"><select id="watchType"><option>Movie</option><option>Book</option><option>Football</option></select><button onclick="addWatchItem()">Add</button><div id="watchListContainer"></div></div></div>
         <div id="bucket" class="section"><h2>Bucket List</h2><div class="card"><input type="text" id="bucketItem" placeholder="Dream..."><button onclick="addBucketItem()">Add</button><ul id="bucketListContainer"></ul></div></div>
         <div id="constitution" class="section"><h2>Constitution</h2><div class="card"><input type="text" id="constSearch" placeholder="Search..." class="modal-input" onkeyup="searchConstitution()"><div id="constResults"></div></div></div>
-        <div id="whiteboard" class="section"><h2>Canvas</h2><div class="card" style="padding:0; height:75vh;"><canvas id="drawingCanvas" style="width:100%; height:100%;"></canvas></div><div style="margin-top:10px;"><button onclick="clearCanvas()">Clear</button> <button onclick="downloadCanvas()">Save</button> <input type="color" id="brushColor" value="#ffffff"></div></div>
+        <div id="whiteboard" class="section"><h2>Canvas</h2><div class="card" style="padding:0; height:75vh;"><canvas id="drawingCanvas" style="width:100%; height:100%;"></canvas></div>
+<div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:5px;">
+        <button onclick="changeSlide(-1)" title="Previous" style="padding:5px 10px;"><i class="fas fa-chevron-left"></i></button>
+        <span id="slideCounter" style="margin:0 10px; font-weight:bold; font-size:1.1rem;">1 / 1</span>
+        <button onclick="changeSlide(1)" title="Next" style="padding:5px 10px;"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+    <div style="display:flex; gap:5px;">
+        <button onclick="newSlide()" style="background:var(--success); padding:5px 10px;">+ New</button>
+        <button onclick="saveCurrentSlide()" style="background:var(--primary); padding:5px 10px;">Save</button>
+        <button onclick="deleteSlide()" style="background:var(--danger); padding:5px 10px;">Del</button>
+        <button onclick="clearCanvas()" style="background:#6b7280; padding:5px 10px;">Clear</button>
+        <button onclick="downloadCanvas()" title="Download Image" style="padding:5px 10px;"><i class="fas fa-download"></i></button>
+        <input type="color" id="brushColor" value="#ffffff" style="height:30px; width:40px; border:none; cursor:pointer;">
+    </div>
+</div>
         <div id="goals" class="section"><h2>Goals</h2><div class="tabs"><div class="tab active" onclick="switchGoalTab('daily')">Daily</div><div class="tab" onclick="switchGoalTab('weekly')">Weekly</div></div><div class="card"><input type="text" id="newGoalInput" placeholder="Goal..."><button onclick="addGoal()">Add</button><ul id="goalList"></ul></div></div>
         <div id="library" class="section"><h2>Library</h2><div class="card"><input type="text" id="bookTitle" placeholder="Title"><input type="number" id="bookPages" placeholder="Pages"><button onclick="addBook()">Add</button><div id="libraryContainer"></div></div></div>
         <div id="tests" class="section"><h2>Tests</h2><div class="card"><input type="text" id="testSubject" placeholder="Subject"><input type="number" id="testScore" placeholder="Score"><button onclick="addTestScore()">Log</button></div><div class="card"><canvas id="testChart"></canvas></div><table id="testTable"><tbody></tbody></table></div>
@@ -216,9 +351,29 @@
             <div style="display:flex; justify-content:space-between;"><h2>Apps</h2><button onclick="closeModal('appsModal')" class="btn-cancel">X</button></div>
             <div class="apps-grid">
                 <div class="app-icon" onclick="selectApp('chef')"><i class="fas fa-utensils" style="color:#f59e0b"></i><span>Chef</span></div>
-                <div class="app-icon" onclick="selectApp('dopamine')"><i class="fas fa-mobile-alt" style="color:#ef4444"></i><span>Detox</span></div>
+              <div class="app-icon" onclick="selectApp('yearCompass')">
+    <i class="fas fa-calendar-alt" style="color:#f59e0b"></i>
+    <span>Compass</span>
+</div>
+                  <div class="app-icon" onclick="selectApp('dopamine')"><i class="fas fa-mobile-alt" style="color:#ef4444"></i><span>Detox</span></div>
                 <div class="app-icon" onclick="selectApp('inventory')"><i class="fas fa-shopping-cart" style="color:#10b981"></i><span>Shop</span></div>
                 <div class="app-icon" onclick="selectApp('events')"><i class="fas fa-calendar-star" style="color:#3b82f6"></i><span>Events</span></div>
+              <div class="app-icon" onclick="selectApp('mood')">
+    <i class="fas fa-smile" style="color:#fcd34d"></i>
+    <span>Mood</span>
+</div>
+
+<div class="app-icon" onclick="selectApp('nottodo')">
+    <i class="fas fa-ban" style="color:#ef4444"></i>
+    <span>Not-To-Do</span>
+</div>
+              <div class="app-icon" onclick="selectApp('events')">
+    <i class="fas fa-hourglass-half" style="color:#ec4899"></i>
+    <span>Events</span>
+</div>  <div class="app-icon" onclick="selectApp('identity')">
+    <i class="fas fa-id-card" style="color:#6366f1"></i>
+    <span>Identity</span>
+</div>
                 <div class="app-icon" onclick="selectApp('thoughtpad')"><i class="fas fa-sticky-note" style="color:var(--text-main)"></i><span>Thoughts</span></div>
                 <div class="app-icon" onclick="selectApp('treasury')"><i class="fas fa-rupee-sign" style="color:#10b981"></i><span>Treasury</span></div>
                 <div class="app-icon" onclick="selectApp('bio')"><i class="fas fa-heartbeat" style="color:#ef4444"></i><span>Health</span></div>
@@ -229,6 +384,15 @@
                 <div class="app-icon" onclick="selectApp('constitution')"><i class="fas fa-balance-scale" style="color:#f59e0b"></i><span>Polity</span></div>
                 <div class="app-icon" onclick="selectApp('whiteboard')"><i class="fas fa-pen-alt" style="color:var(--text-main)"></i><span>Canvas</span></div>
                 <div class="app-icon" onclick="selectApp('goals')"><i class="fas fa-bullseye" style="color:#f59e0b"></i><span>Goals</span></div>
+              <div class="app-card" onclick="selectApp('dojo')">
+    <i class="fas fa-dumbbell" style="color:#ef4444;"></i>
+    <span>Dojo</span>
+</div>
+
+<div class="app-card" onclick="selectApp('tribe')">
+    <i class="fas fa-users" style="color:#3b82f6;"></i>
+    <span>Tribe</span>
+</div>
                 <div class="app-icon" onclick="selectApp('library')"><i class="fas fa-book" style="color:#10b981"></i><span>Library</span></div>
                 <div class="app-icon" onclick="selectApp('tests')"><i class="fas fa-pencil-ruler" style="color:#ef4444"></i><span>Tests</span></div>
                 <div class="app-icon" onclick="selectApp('flashcards')"><i class="fas fa-sd-card" style="color:#ef4444"></i><span>Cards</span></div>
@@ -241,6 +405,10 @@
                 <div class="app-icon" onclick="startMathDrill()"><i class="fas fa-calculator" style="color:#f59e0b"></i><span>Math</span></div>
                 <div class="app-icon" onclick="openCalcModal()"><i class="fas fa-divide" style="color:#3b82f6"></i><span>Calc</span></div>
                 <div class="app-icon" onclick="openManifesto()"><i class="fas fa-scroll" style="color:#10b981"></i><span>Manifesto</span></div>
+              <div class="app-icon" onclick="selectApp('ledger')">
+    <i class="fas fa-handshake" style="color:#10b981"></i>
+    <span>Ledger</span>
+</div>
                 <div class="app-icon"><label><input type="checkbox" id="degreeToggle" onchange="toggleDegreeMode()"> <span>B.Tech</span></label></div>
             </div>
         </div>
@@ -275,5 +443,16 @@
     <div id="manifestoModal" class="modal"><div class="modal-content"><textarea id="manifestoText" rows="10" class="modal-input"></textarea><button onclick="saveManifesto()">Save</button><button onclick="closeModal('manifestoModal')">Close</button></div></div>
 
     <script src="script.js"></script>
-</body>
+<div id="pdfReader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; flex-direction:column;">
+    
+    <div style="background:#111; color:white; padding:10px 15px; display:flex; justify-content:space-between; align-items:center;">
+        <span id="pdfTitle" style="font-weight:bold;">Reading Mode</span>
+        <button onclick="closePDF()" style="background:#ef4444; color:white; border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">Close</button>
+    </div>
+
+    <iframe id="pdfFrame" style="width:100%; height:100%; border:none; background:#333;"></iframe>
+
+    <input type="file" id="pdfInput" accept="application/pdf" style="display:none;" onchange="renderPDF(this)">
+</div>
+          </body>
 </html>
