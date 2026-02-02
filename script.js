@@ -1456,47 +1456,7 @@ function toggleChapter(id) {
 function openNoteModal(k) { document.getElementById('noteTopicTitle').innerText=k.split('-')[2]; document.getElementById('noteText').value=appData.syllabus[k]?.note||''; document.getElementById('noteLink').value=appData.syllabus[k]?.link||''; document.getElementById('noteModal').dataset.key=k; document.getElementById('noteModal').style.display='flex'; }
 function saveNote() { const k=document.getElementById('noteModal').dataset.key; if(!appData.syllabus[k]) appData.syllabus[k]={status:0}; appData.syllabus[k].note=document.getElementById('noteText').value; appData.syllabus[k].link=document.getElementById('noteLink').value; saveData(); document.getElementById('noteModal').style.display='none'; renderSyllabus(); }
 function closeModal(id) { document.getElementById(id).style.display='none'; }
-// --- NEW LIBRARY FUNCTION (With Read Button) ---
-function renderLibrary() {
-    const list = document.getElementById('bookList');
-    if (!list) return; 
-    
-    list.innerHTML = ''; // Clear the list to rebuild it
-
-    // Initialize data if missing
-    if (!appData.library) appData.library = [];
-
-    // Loop through every book and create the HTML card
-    appData.library.forEach((book, index) => {
-        
-        // 1. Determine Status Color
-        let statusColor = '#3b82f6'; // Blue
-        if(book.status === 'Completed') statusColor = '#10b981'; // Green
-        if(book.status === 'To Read') statusColor = '#f59e0b'; // Orange
-
-        // 2. Create the HTML for the Book Card
-        list.innerHTML += `
-            <div class="book-card" style="display:flex; justify-content:space-between; align-items:center; padding:15px; background:var(--bg); border-bottom:1px solid var(--border);">
-                
-                <div>
-                    <h4 style="margin:0; font-size:1rem;">${book.title}</h4>
-                    <small style="color:gray;">${book.author} • <span style="color:${statusColor}">${book.status}</span></small>
-                </div>
-                
-                <div style="display:flex; gap:10px;">
-                    
-                    <button onclick="openPDFLoader('${book.title}')" style="background:var(--primary); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:0.9rem;" title="Open PDF">
-                        <i class="fas fa-book-open"></i> Read
-                    </button>
-                    
-                    <button onclick="deleteBook(${index})" style="background:none; color:var(--text-muted); border:none; cursor:pointer;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-}
+function renderLibrary() { const div = document.getElementById('libraryContainer'); div.innerHTML = ''; appData.library.forEach((b, i) => { const pct = Math.round((b.read / b.pages) * 100); div.innerHTML += `<div class="book-item"><div style="display:flex; justify-content:space-between;"><strong>${b.title}</strong> <small>${b.read}/${b.pages}</small></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div style="margin-top:5px; display:flex; gap:5px;"><button onclick="updateBook(${i}, 10)" style="font-size:0.7rem; padding:2px 5px;">+10</button><button onclick="updateBook(${i}, 50)" style="font-size:0.7rem; padding:2px 5px;">+50</button><button onclick="deleteBook(${i})" style="font-size:0.7rem; background:none; color:red; padding:2px;">Del</button></div></div>`; }); }
 function addBook() { const t = document.getElementById('bookTitle').value; const p = document.getElementById('bookPages').value; if(t && p) { appData.library.push({title:t, pages:parseInt(p), read:0}); saveData(); renderLibrary(); } }
 function updateBook(i, p) { appData.library[i].read = Math.min(appData.library[i].read + p, appData.library[i].pages); saveData(); renderLibrary(); }
 function deleteBook(i) { appData.library.splice(i,1); saveData(); renderLibrary(); }
@@ -1923,41 +1883,4 @@ function deleteNotToDo(i) {
         saveData();
         renderNotToDo();
     }
-}// ==========================================
-// PDF READER LOGIC
-// ==========================================
-
-let currentBookTitle = "";
-
-// 1. Trigger the File Picker
-function openPDFLoader(title) {
-    currentBookTitle = title;
-    // Simulate a click on the hidden file input
-    document.getElementById('pdfInput').click();
-}
-
-// 2. Render the PDF when file is selected
-function renderPDF(input) {
-    const file = input.files[0];
-    if (file) {
-        // Create a temporary URL for the file
-        const fileURL = URL.createObjectURL(file);
-        
-        // Load it into the iframe
-        const frame = document.getElementById('pdfFrame');
-        frame.src = fileURL;
-        
-        // Update Title
-        document.getElementById('pdfTitle').innerText = "Reading: " + currentBookTitle;
-        
-        // Show the Full Screen Reader
-        document.getElementById('pdfReader').style.display = 'flex';
-    }
-}
-
-// 3. Close Reader
-function closePDF() {
-    document.getElementById('pdfReader').style.display = 'none';
-    document.getElementById('pdfFrame').src = ''; // Clear memory
-    document.getElementById('pdfInput').value = ''; // Reset input
 }
