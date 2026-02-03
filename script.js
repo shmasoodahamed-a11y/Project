@@ -338,12 +338,31 @@ if(id === 'nottodo') renderNotToDo();
         if(id==='treasury') renderTreasury();
         if(id==='bio') renderBio();
         if(id==='monk') renderMonk();
+      if (id === 'stoic_journal') renderStoicJournal();
+      if (id === 'test_analyser') renderPrelimsLogs();
+      if (id === 'book_vault') renderBookVault();
+ if (id === 'niti_game') {
+    // Optional: Only start if not already running
+    if(nitiState.year === 1) updateNitiUI();
+}
+  
         if(id==='watchlist') renderWatchlist();
         if(id==='bucket') renderBucket();
         if(id==='chef') renderChef();
         if(id==='dopamine') renderDopamine();
         if(id==='inventory') renderInventory();
         if(id==='events') renderEvents();
+      if (id === 'braindeck') renderCard();
+      if (id === 'goals') renderGoals();
+      if (id === 'focus_chain') renderFocusChain();
+      if (id === 'memo') renderMemo();
+      if(id === 'mapmaster') {
+    setTimeout(() => { 
+        initQuizMap(); 
+        if(quizMap) quizMap.invalidateSize();
+        if(!currentTarget) startMapRound(); 
+    }, 300);
+}
     }
 }
 
@@ -1366,19 +1385,6 @@ function updateDashboard() {
     updateRank(); 
 }
 
-let currentGoalTab = 'daily';
-function switchGoalTab(tab) { currentGoalTab = tab; document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); const tabs = document.querySelectorAll('.tab'); if(tab === 'daily') tabs[0].classList.add('active'); if(tab === 'weekly') tabs[1].classList.add('active'); if(tab === 'monthly') tabs[2].classList.add('active'); if(tab === 'halfyearly') tabs[3].classList.add('active'); document.getElementById('newGoalInput').placeholder = `Add a ${tab} goal...`; renderGoals(); }
-function renderGoals() { const list = document.getElementById('goalList'); list.innerHTML = ''; const goals = appData.goals[currentGoalTab] || []; if(goals.length === 0) list.innerHTML = `<li style="text-align:center; color:gray; font-size:0.8rem; padding:10px;">No ${currentGoalTab} goals.</li>`; goals.forEach((g,i)=>{ list.innerHTML += `<li class="goal-item ${g.prio?'high-priority':''} ${g.completed?'completed':''}"><span onclick="toggleGoal(${i})">${g.text}</span><button onclick="deleteGoal(${i})" style="color:red;background:none;"><i class="fas fa-trash"></i></button></li>`; }); }
-function addGoal() { const txt = document.getElementById('newGoalInput').value.trim(); const prio = document.getElementById('goalPriority').checked; if(txt) { if(!appData.goals[currentGoalTab]) appData.goals[currentGoalTab] = []; appData.goals[currentGoalTab].push({text:txt, completed:false, prio:prio}); document.getElementById('newGoalInput').value = ''; saveData(); renderGoals(); } }
-function toggleGoal(i) { 
-    appData.goals[currentGoalTab][i].completed = !appData.goals[currentGoalTab][i].completed; 
-    if(appData.goals[currentGoalTab][i].completed) appData.xp = (appData.xp||0) + 50;
-    else appData.xp = (appData.xp||0) - 50;
-    updateRank();
-    saveData(); 
-    renderGoals(); 
-}
-function deleteGoal(i) { appData.goals[currentGoalTab].splice(i,1); saveData(); renderGoals(); }
 
 // MISC UTILS
 function triggerPanic() { document.getElementById('panicModal').style.display = 'flex'; }
@@ -1389,10 +1395,10 @@ function checkSunset() { const hour = new Date().getHours(); if(hour >= 22 && !a
 function addPen() { appData.pensUsed += 1; document.getElementById('penDisplay').innerText = appData.pensUsed; saveData(); }
 function openManifesto() { document.getElementById('manifestoText').value = appData.manifesto || ""; document.getElementById('manifestoModal').style.display = 'flex'; }
 function saveManifesto() { appData.manifesto = document.getElementById('manifestoText').value; saveData(); closeModal('manifestoModal'); }
-function startMathDrill() { document.getElementById('mathModal').style.display = 'flex'; document.getElementById('mathAnswer').value = ''; document.getElementById('mathAnswer').focus(); nextMathQuestion(); let timeLeft = 120; document.getElementById('mathTimer').innerText = "2:00"; if(mathTimerInt) clearInterval(mathTimerInt); mathTimerInt = setInterval(() => { timeLeft--; const m = Math.floor(timeLeft/60); const s = (timeLeft%60).toString().padStart(2,'0'); document.getElementById('mathTimer').innerText = `${m}:${s}`; if(timeLeft <= 0) { clearInterval(mathTimerInt); alert("Time's Up!"); closeModal('mathModal'); } }, 1000); }
-function openOMRModal() { selectedBubbles = {}; renderOMR(); document.getElementById('omrScoreDisplay').innerText = ""; document.getElementById('omrModal').style.display = 'flex'; }
+
+
 function openCalcModal() { document.getElementById('calcModal').style.display = 'flex'; }
-function addTestScore() { appData.tests.push({date:getTodayDate(), type:document.getElementById('testType').value, subject:document.getElementById('testSubject').value, score:document.getElementById('testScore').value, total:document.getElementById('testTotal').value}); saveData(); renderMockTests(); }
+
 function openAIModal() { const sel = document.getElementById('aiTopic'); sel.innerHTML = '<option value="" disabled selected>Select Topic...</option>'; UPSC_SYLLABUS.forEach(s => s.chapters.forEach(c => c.topics.forEach(t => sel.innerHTML += `<option value="${t}">${t}</option>`))); document.getElementById('aiModal').style.display = 'flex'; }
 function generateAIPrompt() { const topic = document.getElementById('aiTopic').value; const mode = document.getElementById('aiMode').value; if(!topic) return; let prompt = ""; if(mode === "explain") prompt = `Explain "${topic}" in simple terms.`; if(mode === "quiz") prompt = `Generate 5 MCQs on "${topic}".`; if(mode === "mains") prompt = `Structure a Mains answer for "${topic}".`; if(mode === "facts") prompt = `Key facts for "${topic}".`; document.getElementById('aiOutput').value = prompt; }
 function startMainsTimer() { document.getElementById('focusTime').value = 7; startTimer(); }
@@ -1427,13 +1433,9 @@ function exportData() { const blob = new Blob([JSON.stringify(appData)], {type:"
 function toggleTheme() { document.body.classList.toggle('dark-mode'); appData.darkMode = !appData.darkMode; saveData(); renderCharts(); }
 function copyToClipboard() { document.getElementById("aiOutput").select(); document.execCommand("copy"); alert("Copied!"); }
 function saveRetro() { appData.retros.push({date: new Date().toISOString(), well: document.getElementById('retroWell').value, bad: document.getElementById('retroBad').value, strat: document.getElementById('retroStrat').value}); saveData(); alert("Review Locked!"); }
-function renderRetroStats() { let totalMins = 0; const list = document.getElementById('retroStatsList'); list.innerHTML = ''; for(let i=0; i<7; i++) { const d = new Date(); d.setDate(d.getDate() - i); totalMins += (appData.focusLog[getTodayDate()] || 0); } list.innerHTML = `<li><strong>Total Focus:</strong> ${Math.round(totalMins/60)} Hours</li>`; }
+
 function scanSyllabus() { const text = document.getElementById('scanInput').value.toLowerCase(); const resultDiv = document.getElementById('scanResults'); resultDiv.innerHTML = ''; if(!text) return; const keywords = text.split(' ').filter(w => w.length > 3); let matches = []; UPSC_SYLLABUS.forEach(sub => { sub.chapters.forEach(chap => { let score = 0; keywords.forEach(k => { if(chap.title.toLowerCase().includes(k)) score += 2; }); if(score > 0) matches.push({ subject: sub.subject, chapter: chap.title }); }); }); matches.forEach(m => { resultDiv.innerHTML += `<div>${m.subject} - ${m.chapter}</div>`; }); }
-function renderMockTests() { const tbody = document.querySelector('#testTable tbody'); tbody.innerHTML = ''; const scores = appData.tests || []; scores.forEach((t, i) => { tbody.innerHTML += `<tr><td>${t.date}</td><td>${t.type}</td><td>${t.subject}</td><td><strong>${t.score}/${t.total}</strong></td><td><button onclick="deleteTest(${i})" style="color:red; background:none;"><i class="fas fa-trash"></i></button></td></tr>`; }); const ctx = document.getElementById('testChart'); if(window.testChartInst) window.testChartInst.destroy(); window.testChartInst = new Chart(ctx, { type: 'line', data: { labels: scores.map(t=>t.date), datasets: [{ label: '%', data: scores.map(t=>(t.score/t.total)*100), borderColor: '#2563eb' }] }, options:{maintainAspectRatio: false, scales:{y:{beginAtZero:true, max:100}}} }); }
-function deleteTest(i) { appData.tests.splice(i, 1); saveData(); renderMockTests(); }
-function nextMathQuestion() { const ops = ['+', '-', '*']; const op = ops[Math.floor(Math.random()*3)]; let a, b; if(op === '*') { a = Math.floor(Math.random()*15)+2; b = Math.floor(Math.random()*10)+2; } else { a = Math.floor(Math.random()*100); b = Math.floor(Math.random()*100); } currentAns = eval(`${a} ${op} ${b}`); document.getElementById('mathQuestion').innerText = `${a} ${op} ${b} = ?`; }
-function checkMathAnswer(e) { if(e.key === 'Enter') { if(parseInt(e.target.value) === currentAns) { e.target.value = ''; nextMathQuestion(); } else { e.target.style.borderColor = 'red'; setTimeout(() => e.target.style.borderColor = '#ccc', 200); } } }
-function calc(key) { const disp = document.getElementById('calcInput'); if(key === 'C') disp.value = ''; else if(key === '=') { try { disp.value = eval(disp.value); } catch { disp.value = 'Error'; } } else disp.value += key; }
+
 function toggleChapter(id) {
     // 1. Initialize the storage array if missing
     if (!appData.expanded) appData.expanded = [];
@@ -1456,15 +1458,12 @@ function toggleChapter(id) {
 function openNoteModal(k) { document.getElementById('noteTopicTitle').innerText=k.split('-')[2]; document.getElementById('noteText').value=appData.syllabus[k]?.note||''; document.getElementById('noteLink').value=appData.syllabus[k]?.link||''; document.getElementById('noteModal').dataset.key=k; document.getElementById('noteModal').style.display='flex'; }
 function saveNote() { const k=document.getElementById('noteModal').dataset.key; if(!appData.syllabus[k]) appData.syllabus[k]={status:0}; appData.syllabus[k].note=document.getElementById('noteText').value; appData.syllabus[k].link=document.getElementById('noteLink').value; saveData(); document.getElementById('noteModal').style.display='none'; renderSyllabus(); }
 function closeModal(id) { document.getElementById(id).style.display='none'; }
-function renderLibrary() { const div = document.getElementById('libraryContainer'); div.innerHTML = ''; appData.library.forEach((b, i) => { const pct = Math.round((b.read / b.pages) * 100); div.innerHTML += `<div class="book-item"><div style="display:flex; justify-content:space-between;"><strong>${b.title}</strong> <small>${b.read}/${b.pages}</small></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div><div style="margin-top:5px; display:flex; gap:5px;"><button onclick="updateBook(${i}, 10)" style="font-size:0.7rem; padding:2px 5px;">+10</button><button onclick="updateBook(${i}, 50)" style="font-size:0.7rem; padding:2px 5px;">+50</button><button onclick="deleteBook(${i})" style="font-size:0.7rem; background:none; color:red; padding:2px;">Del</button></div></div>`; }); }
-function addBook() { const t = document.getElementById('bookTitle').value; const p = document.getElementById('bookPages').value; if(t && p) { appData.library.push({title:t, pages:parseInt(p), read:0}); saveData(); renderLibrary(); } }
-function updateBook(i, p) { appData.library[i].read = Math.min(appData.library[i].read + p, appData.library[i].pages); saveData(); renderLibrary(); }
-function deleteBook(i) { appData.library.splice(i,1); saveData(); renderLibrary(); }
+
 function checkNewsReset() { const t=getTodayDate(); if(appData.news.date!==t) appData.news={date:t,hindu:false,edit:false,mag:false}; document.getElementById('news-hindu').checked=appData.news.hindu; document.getElementById('news-edit').checked=appData.news.edit; document.getElementById('news-mag').checked=appData.news.mag; }
 function toggleNews(k) { appData.news[k]=document.getElementById(`news-${k}`).checked; saveData(); }
 function renderHeatmap() { const d=document.getElementById('heatmap'); d.innerHTML=''; for(let i=364; i>=0; i--){ const dt=new Date(); dt.setDate(dt.getDate()-i); const dStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; const m=appData.focusLog[dStr]||0; let c=''; if(m>0)c='heat-1'; if(m>60)c='heat-2'; if(m>180)c='heat-3'; d.innerHTML+=`<div class="heat-box ${c}" title="${m}m"></div>`; } }
 function addFlashcard() { const f = document.getElementById('fcFront').value; const b = document.getElementById('fcBack').value; if(f && b) { appData.flashcards.push({front: f, back: b}); document.getElementById('fcFront').value = ''; document.getElementById('fcBack').value = ''; saveData(); renderFlashcard(); alert("Card Added!"); } }
-function saveMainsDraft() { const q = document.getElementById('mainsQuestion').value; if(!q) { alert("Enter title"); return; } appData.mainsDrafts.push({q, i: document.getElementById('mainsIntro').value, b: document.getElementById('mainsBody').value, c: document.getElementById('mainsConc').value, date: new Date().toISOString()}); saveData(); alert("Draft Saved!"); }
+
 window.onclick = e => { if(e.target.classList.contains('modal')) e.target.style.display='none'; }
 // ==========================================
 // NEW LIFE APPS (Dojo & Tribe)
@@ -1882,5 +1881,1122 @@ function deleteNotToDo(i) {
         appData.nottodo.splice(i, 1);
         saveData();
         renderNotToDo();
+    }
+}
+// ==========================================
+// NEW APP: MEMO
+// ==========================================
+
+function renderMemo() {
+    const container = document.getElementById('memoList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // 1. Initialize data if it doesn't exist
+    if (!appData.memos) appData.memos = [];
+
+    // 2. Loop through data and create HTML
+    appData.memos.forEach((item, index) => {
+        container.innerHTML += `
+            <div style="background:var(--bg); padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border);">
+                <span>${item.text}</span>
+                <button onclick="deleteMemo(${index})" style="color:red; background:none; padding:5px;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+    });
+}
+
+function addMemo() {
+    const input = document.getElementById('memoInput');
+    const text = input.value;
+    
+    if (text) {
+        if (!appData.memos) appData.memos = [];
+        
+        // Add new item to array
+        appData.memos.push({ text: text, date: new Date().toISOString() });
+        
+        input.value = ''; // Clear input
+        saveData();       // Save to Firebase/Local
+        renderMemo();     // Refresh screen
+    }
+}
+
+function deleteMemo(index) {
+    if (confirm("Delete this memo?")) {
+        appData.memos.splice(index, 1); // Remove item
+        saveData();
+        renderMemo();
+    }
+}
+// ==========================================
+// APP: MAP MASTER ULTRA
+// ==========================================
+
+// 1. MASSIVE DATASET
+const MM_DATA = [
+    // --- INDIA CAPITALS ---
+    { n: "New Delhi", lat: 28.6139, lng: 77.2090, cat: "india_cap" },
+    { n: "Mumbai", lat: 19.0760, lng: 72.8777, cat: "india_cap" },
+    { n: "Chennai", lat: 13.0827, lng: 80.2707, cat: "india_cap" },
+    { n: "Kolkata", lat: 22.5726, lng: 88.3639, cat: "india_cap" },
+    { n: "Bengaluru", lat: 12.9716, lng: 77.5946, cat: "india_cap" },
+    { n: "Hyderabad", lat: 17.3850, lng: 78.4867, cat: "india_cap" },
+    { n: "Gandhinagar", lat: 23.2156, lng: 72.6369, cat: "india_cap" },
+    { n: "Jaipur", lat: 26.9124, lng: 75.7873, cat: "india_cap" },
+    { n: "Lucknow", lat: 26.8467, lng: 80.9462, cat: "india_cap" },
+    { n: "Bhopal", lat: 23.2599, lng: 77.4126, cat: "india_cap" },
+    { n: "Patna", lat: 25.5941, lng: 85.1376, cat: "india_cap" },
+    { n: "Ranchi", lat: 23.3441, lng: 85.3096, cat: "india_cap" },
+    { n: "Raipur", lat: 21.2514, lng: 81.6296, cat: "india_cap" },
+    { n: "Chandigarh", lat: 30.7333, lng: 76.7794, cat: "india_cap" },
+    { n: "Shimla", lat: 31.1048, lng: 77.1734, cat: "india_cap" },
+    { n: "Srinagar", lat: 34.0837, lng: 74.7973, cat: "india_cap" },
+    { n: "Leh", lat: 34.1526, lng: 77.5770, cat: "india_cap" },
+    { n: "Thiruvananthapuram", lat: 8.5241, lng: 76.9366, cat: "india_cap" },
+    { n: "Dispur", lat: 26.1433, lng: 91.7898, cat: "india_cap" },
+    { n: "Itanagar", lat: 27.0844, lng: 93.6053, cat: "india_cap" },
+    { n: "Kohima", lat: 25.6751, lng: 94.1086, cat: "india_cap" },
+    { n: "Imphal", lat: 24.8170, lng: 93.9368, cat: "india_cap" },
+    { n: "Aizawl", lat: 23.7271, lng: 92.7176, cat: "india_cap" },
+    { n: "Agartala", lat: 23.8315, lng: 91.2868, cat: "india_cap" },
+    { n: "Shillong", lat: 25.5788, lng: 91.8933, cat: "india_cap" },
+    { n: "Gangtok", lat: 27.3389, lng: 88.6065, cat: "india_cap" },
+    { n: "Bhubaneswar", lat: 20.2961, lng: 85.8245, cat: "india_cap" },
+    { n: "Panaji", lat: 15.4909, lng: 73.8278, cat: "india_cap" },
+    { n: "Amaravati", lat: 16.5062, lng: 80.5226, cat: "india_cap" },
+    { n: "Dehradun", lat: 30.3165, lng: 78.0322, cat: "india_cap" },
+
+    // --- INDIA PHYSICAL (Rivers/Lakes) ---
+    { n: "Ganga (Origin/Devprayag)", lat: 30.1459, lng: 78.5986, cat: "india_phy" },
+    { n: "Yamuna (Delhi stretch)", lat: 28.6100, lng: 77.2800, cat: "india_phy" },
+    { n: "Godavari (Delta)", lat: 16.7320, lng: 82.2079, cat: "india_phy" },
+    { n: "Krishna River (Vijayawada)", lat: 16.5000, lng: 80.6000, cat: "india_phy" },
+    { n: "Kaveri (Delta)", lat: 11.1300, lng: 79.8000, cat: "india_phy" },
+    { n: "Narmada (Marble Rocks)", lat: 23.1200, lng: 79.8000, cat: "india_phy" },
+    { n: "Brahmaputra (Guwahati)", lat: 26.1800, lng: 91.7300, cat: "india_phy" },
+    { n: "Chilika Lake", lat: 19.6500, lng: 85.3000, cat: "india_phy" },
+    { n: "Dal Lake", lat: 34.1100, lng: 74.8700, cat: "india_phy" },
+    { n: "Loktak Lake", lat: 24.5500, lng: 93.8000, cat: "india_phy" },
+    { n: "Vembanad Lake", lat: 9.6000, lng: 76.3800, cat: "india_phy" },
+    { n: "Sambhar Lake", lat: 26.9000, lng: 75.1000, cat: "india_phy" },
+    { n: "Thar Desert", lat: 26.8000, lng: 71.0000, cat: "india_phy" },
+    { n: "Kanchenjunga", lat: 27.7025, lng: 88.1475, cat: "india_phy" },
+    { n: "Nanda Devi", lat: 30.3753, lng: 79.9705, cat: "india_phy" },
+
+    // --- WORLD CAPITALS ---
+    { n: "Washington DC, USA", lat: 38.9072, lng: -77.0369, cat: "world_cap" },
+    { n: "London, UK", lat: 51.5074, lng: -0.1278, cat: "world_cap" },
+    { n: "Paris, France", lat: 48.8566, lng: 2.3522, cat: "world_cap" },
+    { n: "Berlin, Germany", lat: 52.5200, lng: 13.4050, cat: "world_cap" },
+    { n: "Moscow, Russia", lat: 55.7558, lng: 37.6173, cat: "world_cap" },
+    { n: "Beijing, China", lat: 39.9042, lng: 116.4074, cat: "world_cap" },
+    { n: "Tokyo, Japan", lat: 35.6762, lng: 139.6503, cat: "world_cap" },
+    { n: "Canberra, Australia", lat: -35.2809, lng: 149.1300, cat: "world_cap" },
+    { n: "Ottawa, Canada", lat: 45.4215, lng: -75.6972, cat: "world_cap" },
+    { n: "Brasilia, Brazil", lat: -15.7975, lng: -47.8919, cat: "world_cap" },
+    { n: "Buenos Aires, Argentina", lat: -34.6037, lng: -58.3816, cat: "world_cap" },
+    { n: "Cairo, Egypt", lat: 30.0444, lng: 31.2357, cat: "world_cap" },
+    { n: "Abuja, Nigeria", lat: 9.0765, lng: 7.3986, cat: "world_cap" },
+    { n: "Pretoria, South Africa", lat: -25.7479, lng: 28.2293, cat: "world_cap" },
+    { n: "Nairobi, Kenya", lat: -1.2921, lng: 36.8219, cat: "world_cap" },
+    { n: "Riyadh, Saudi Arabia", lat: 24.7136, lng: 46.6753, cat: "world_cap" },
+    { n: "Tehran, Iran", lat: 35.6892, lng: 51.3890, cat: "world_cap" },
+    { n: "Jakarta, Indonesia", lat: -6.2088, lng: 106.8456, cat: "world_cap" },
+    { n: "Bangkok, Thailand", lat: 13.7563, lng: 100.5018, cat: "world_cap" },
+    { n: "Hanoi, Vietnam", lat: 21.0285, lng: 105.8542, cat: "world_cap" },
+    { n: "Seoul, South Korea", lat: 37.5665, lng: 126.9780, cat: "world_cap" },
+    { n: "Rome, Italy", lat: 41.9028, lng: 12.4964, cat: "world_cap" },
+    { n: "Madrid, Spain", lat: 40.4168, lng: -3.7038, cat: "world_cap" },
+    { n: "Ankara, Turkey", lat: 39.9334, lng: 32.8597, cat: "world_cap" },
+
+    // --- WORLD PHYSICAL (Rivers, Deserts, Mountains) ---
+    { n: "Nile River (Delta)", lat: 30.1700, lng: 31.1000, cat: "world_phy" },
+    { n: "Amazon River (Mouth)", lat: -0.1700, lng: -49.0000, cat: "world_phy" },
+    { n: "Mississippi River (Delta)", lat: 29.1500, lng: -89.2500, cat: "world_phy" },
+    { n: "Yangtze River", lat: 31.2300, lng: 121.4700, cat: "world_phy" },
+    { n: "Danube River", lat: 45.2000, lng: 29.6000, cat: "world_phy" },
+    { n: "Volga River", lat: 46.0000, lng: 48.0000, cat: "world_phy" },
+    { n: "Sahara Desert", lat: 23.0000, lng: 12.0000, cat: "world_phy" },
+    { n: "Gobi Desert", lat: 42.0000, lng: 105.0000, cat: "world_phy" },
+    { n: "Kalahari Desert", lat: -23.0000, lng: 22.0000, cat: "world_phy" },
+    { n: "Atacama Desert", lat: -23.0000, lng: -69.0000, cat: "world_phy" },
+    { n: "Mt Everest", lat: 27.9881, lng: 86.9250, cat: "world_phy" },
+    { n: "Mt Kilimanjaro", lat: -3.0674, lng: 37.3556, cat: "world_phy" },
+    { n: "Mt Aconcagua (Andes)", lat: -32.6532, lng: -70.0109, cat: "world_phy" },
+    { n: "Mt Denali (Alaska)", lat: 63.0692, lng: -151.0070, cat: "world_phy" },
+    { n: "Mt Elbrus", lat: 43.3499, lng: 42.4453, cat: "world_phy" },
+    { n: "Mont Blanc (Alps)", lat: 45.8326, lng: 6.8652, cat: "world_phy" },
+    { n: "Great Barrier Reef", lat: -18.2871, lng: 147.6992, cat: "world_phy" }
+];
+
+let quizMap, currentTarget, quizMarker, lineLayer;
+let quizScore = 0;
+let quizActive = false;
+
+function initQuizMap() {
+    if(quizMap) return;
+    
+    // Default view: Center of the World
+    quizMap = L.map('quizMap').setView([20, 0], 2);
+    
+    // Satellite/Dark Style
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+        attribution: '© OpenStreetMap', 
+        maxZoom: 10, minZoom: 2, noWrap: true
+    }).addTo(quizMap);
+
+    quizMap.on('click', handleMapClick);
+}
+
+function startMapRound() {
+    // 1. Clear previous
+    if(quizMarker) quizMap.removeLayer(quizMarker);
+    if(lineLayer) quizMap.removeLayer(lineLayer);
+    document.getElementById('mmResult').style.display = 'none';
+    
+    // 2. Filter by Category
+    const cat = document.getElementById('mmCategory').value;
+    let pool = MM_DATA;
+    
+    if(cat !== 'all') {
+        pool = MM_DATA.filter(i => i.cat === cat);
+    }
+    
+    if(pool.length === 0) { alert("No locations in this category!"); return; }
+
+    // 3. Pick Random
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    currentTarget = pool[randomIndex];
+    quizActive = true;
+
+    // 4. Update UI
+    document.getElementById('mmQuestion').innerText = currentTarget.n;
+    
+    // Zoom out if world mode, zoom in if India mode
+    if(cat.includes('india')) {
+        quizMap.setView([22.5, 78.9], 4);
+    } else {
+        quizMap.setView([20, 0], 2);
+    }
+}
+
+function handleMapClick(e) {
+    if (!quizActive || !currentTarget) return;
+
+    const userLat = e.latlng.lat;
+    const userLng = e.latlng.lng;
+    const dist = getDistance(userLat, userLng, currentTarget.lat, currentTarget.lng);
+    
+    // Score Logic (Stricter for India, looser for World)
+    let points = 0;
+    let color = "red";
+    let msg = "Missed";
+    
+    // Dynamic difficulty: If looking for a city, be strict. If looking for a river/mountain, be nice.
+    const threshold = currentTarget.cat.includes('cap') ? 100 : 300; 
+
+    if (dist < threshold) { points = 100; msg = "🎯 Spot On!"; color = "#10b981"; }
+    else if (dist < threshold * 3) { points = 50; msg = "🔥 Close!"; color = "#f59e0b"; }
+    else { points = 0; msg = "❌ Too far"; color = "#ef4444"; }
+
+    // Visuals
+    quizMarker = L.marker([currentTarget.lat, currentTarget.lng]).addTo(quizMap)
+        .bindPopup(`<b>${currentTarget.n}</b>`).openPopup();
+
+    lineLayer = L.polyline([[userLat, userLng], [currentTarget.lat, currentTarget.lng]], 
+        {color: color, weight: 3, dashArray: '10, 10'}).addTo(quizMap);
+
+    // Update Score
+    quizScore += points;
+    document.getElementById('mmScore').innerText = quizScore;
+    
+    const resBox = document.getElementById('mmResult');
+    resBox.innerHTML = `<div>${msg}</div><div style="font-size:0.8rem; opacity:0.8;">${Math.round(dist)} km away</div>`;
+    resBox.style.display = 'block';
+    resBox.style.borderColor = color;
+
+    quizActive = false;
+}
+
+function giveUpMap() {
+    if(!currentTarget) return;
+    quizActive = false;
+    quizMarker = L.marker([currentTarget.lat, currentTarget.lng]).addTo(quizMap)
+        .bindPopup(`<b>${currentTarget.n}</b>`).openPopup();
+    quizMap.flyTo([currentTarget.lat, currentTarget.lng], 5);
+}
+
+// Haversine Algo
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+// ==========================================
+// APP: PROPER GOALS (Restored)
+// ==========================================
+
+let currentGoalTab = 'daily';
+
+function switchGoalTab(tab) {
+    currentGoalTab = tab;
+    
+    // 1. Update Tab UI
+    document.querySelectorAll('#goals .tab').forEach(t => t.classList.remove('active'));
+    // Find the tabs specifically inside the goals section to avoid conflicts
+    const tabs = document.querySelectorAll('#goals .tab');
+    if (tab === 'daily') tabs[0].classList.add('active');
+    if (tab === 'weekly') tabs[1].classList.add('active');
+    if (tab === 'monthly') tabs[2].classList.add('active');
+
+    // 2. Update Placeholder
+    const input = document.getElementById('newGoalInput');
+    if(input) input.placeholder = `Add a ${tab} task...`;
+
+    // 3. Render Data
+    renderGoals();
+}
+
+function renderGoals() {
+    const list = document.getElementById('goalList');
+    const emptyMsg = document.getElementById('emptyGoalMsg');
+    if (!list) return;
+
+    list.innerHTML = '';
+
+    // 1. Ensure Data Exists
+    if (!appData.goals) appData.goals = { daily: [], weekly: [], monthly: [] };
+    if (!appData.goals[currentGoalTab]) appData.goals[currentGoalTab] = [];
+
+    const tasks = appData.goals[currentGoalTab];
+
+    // 2. Sort: High Priority First, then Regular
+    // We create a copy to avoid messing up the original order permanently if not desired
+    // or just render them based on the 'prio' flag.
+    const sortedTasks = [...tasks].sort((a, b) => (b.prio === true) - (a.prio === true));
+
+    // 3. Show Empty State if needed
+    if (tasks.length === 0) {
+        if(emptyMsg) emptyMsg.style.display = 'block';
+    } else {
+        if(emptyMsg) emptyMsg.style.display = 'none';
+        
+        sortedTasks.forEach((g, i) => {
+            // Find the original index to allow deletion/toggling correctly
+            const originalIndex = tasks.indexOf(g);
+            
+            const prioStyle = g.prio ? 'border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.05);' : 'border-left: 4px solid transparent;';
+            const doneStyle = g.completed ? 'opacity:0.5; text-decoration:line-through;' : '';
+            const icon = g.completed ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : '<i class="far fa-circle"></i>';
+
+            list.innerHTML += `
+                <li class="goal-item" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--border); ${prioStyle} ${doneStyle}">
+                    <div onclick="toggleGoal(${originalIndex})" style="cursor:pointer; display:flex; align-items:center; gap:10px; flex:1;">
+                        ${icon}
+                        <span style="font-size:1rem;">${g.text}</span>
+                        ${g.prio ? '<span style="font-size:0.7rem; background:var(--danger); color:white; padding:2px 6px; border-radius:4px;">IMPORTANT</span>' : ''}
+                    </div>
+                    <button onclick="deleteGoal(${originalIndex})" style="color:#ef4444; background:none; border:none; padding:5px; cursor:pointer;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </li>
+            `;
+        });
+    }
+}
+
+function addGoal() {
+    const input = document.getElementById('newGoalInput');
+    const prioCheck = document.getElementById('goalPriority');
+    const text = input.value.trim();
+    
+    if (text) {
+        if (!appData.goals) appData.goals = { daily: [], weekly: [], monthly: [] };
+        if (!appData.goals[currentGoalTab]) appData.goals[currentGoalTab] = [];
+
+        // Add new task
+        appData.goals[currentGoalTab].unshift({
+            text: text,
+            completed: false,
+            prio: prioCheck.checked
+        });
+
+        // Reset Inputs
+        input.value = '';
+        prioCheck.checked = false;
+
+        saveData();
+        renderGoals();
+    }
+}
+
+function toggleGoal(index) {
+    if (appData.goals && appData.goals[currentGoalTab][index]) {
+        appData.goals[currentGoalTab][index].completed = !appData.goals[currentGoalTab][index].completed;
+        
+        // Optional: Add XP if completing a task
+        if(appData.goals[currentGoalTab][index].completed) {
+            appData.xp = (appData.xp || 0) + 20; 
+            try { updateRank(); } catch(e) {} // Updates rank if function exists
+        }
+
+        saveData();
+        renderGoals();
+    }
+}
+
+function deleteGoal(index) {
+    if(confirm("Delete this task?")) {
+        appData.goals[currentGoalTab].splice(index, 1);
+        saveData();
+        renderGoals();
+    }
+}
+// ====================
+// APP: BRAIN DECK
+// ====================
+const FLASHCARDS = [
+    { q: "Article 32", a: "Right to Constitutional Remedies (Heart & Soul of Constitution)" },
+    { q: "Ohm's Law", a: "V = IR (Voltage = Current × Resistance)" },
+    { q: "Battle of Plassey", a: "1757 - British victory over Nawab of Bengal" },
+    { q: "Capital of Mizoram", a: "Aizawl" }
+];
+
+let fcIndex = 0;
+let fcFlipped = false;
+
+function renderCard() {
+    const card = FLASHCARDS[fcIndex];
+    const el = document.getElementById('fcContent');
+    const hint = document.getElementById('fcHint');
+    
+    // Reset state
+    fcFlipped = false; 
+    el.innerText = card.q;
+    el.style.color = "var(--text)";
+    hint.innerText = "(Tap to reveal answer)";
+}
+
+function flipCard() {
+    const card = FLASHCARDS[fcIndex];
+    const el = document.getElementById('fcContent');
+    const hint = document.getElementById('fcHint');
+
+    if (fcFlipped) {
+        el.innerText = card.q;
+        el.style.color = "var(--text)";
+        hint.innerText = "(Tap to reveal answer)";
+    } else {
+        el.innerText = card.a;
+        el.style.color = "var(--primary)"; // Highlight answer
+        hint.innerText = "(Tap to see question)";
+    }
+    fcFlipped = !fcFlipped;
+}
+
+function nextCard(step) {
+    fcIndex += step;
+    if (fcIndex >= FLASHCARDS.length) fcIndex = 0;
+    if (fcIndex < 0) fcIndex = FLASHCARDS.length - 1;
+    renderCard();
+}
+// ==========================================
+// ==========================================
+// ==========================================
+// APP: TEST ANALYSER (SAFE MODE)
+// ==========================================
+
+function switchTestMode(mode) {
+    const vPrelims = document.getElementById('view-prelims');
+    const vMains = document.getElementById('view-mains');
+    if(!vPrelims || !vMains) return; // Safety check
+
+    vPrelims.style.display = mode === 'prelims' ? 'block' : 'none';
+    vMains.style.display = mode === 'mains' ? 'block' : 'none';
+    
+    document.getElementById('tab-prelims').className = mode === 'prelims' ? 'tab active' : 'tab';
+    document.getElementById('tab-mains').className = mode === 'mains' ? 'tab active' : 'tab';
+    
+    if(mode === 'prelims') renderPrelimsLogs();
+    else renderMainsLogs();
+}
+
+function addPrelimsLog() {
+    const sub = document.getElementById('pSubject')?.value;
+    const att = parseInt(document.getElementById('pAtt')?.value);
+    const corr = parseInt(document.getElementById('pCorr')?.value);
+
+    if (sub && att && !isNaN(corr)) {
+        const wrong = att - corr;
+        const marks = (corr * 2) - (wrong * 0.66);
+        const accuracy = att > 0 ? Math.round((corr / att) * 100) : 0;
+        
+        if (!appData.testAnalytics) appData.testAnalytics = { prelims: [], mains: [] };
+        appData.testAnalytics.prelims.unshift({
+            date: new Date().toLocaleDateString(),
+            sub, att, corr, wrong, score: marks.toFixed(2), acc: accuracy
+        });
+
+        document.getElementById('pSubject').value = '';
+        document.getElementById('pAtt').value = '';
+        document.getElementById('pCorr').value = '';
+        saveData();
+        renderPrelimsLogs();
+    } else {
+        alert("Please fill all fields.");
+    }
+}
+
+function renderPrelimsLogs() {
+    const list = document.getElementById('prelimsList');
+    if (!list) return; // Prevents crash if HTML is missing
+    
+    if (!appData.testAnalytics) appData.testAnalytics = { prelims: [], mains: [] };
+    const logs = appData.testAnalytics.prelims || [];
+
+    if (logs.length > 0) {
+        const avgAcc = logs.reduce((sum, i) => sum + i.acc, 0) / logs.length;
+        const avgSc = logs.reduce((sum, i) => sum + parseFloat(i.score), 0) / logs.length;
+        const accEl = document.getElementById('pAvgAcc');
+        const scoreEl = document.getElementById('pAvgScore');
+        if(accEl) accEl.innerText = Math.round(avgAcc) + "%";
+        if(scoreEl) scoreEl.innerText = avgSc.toFixed(1);
+    }
+
+    list.innerHTML = '';
+    logs.forEach((log, i) => {
+        let color = log.score > 100 ? '#10b981' : (log.score > 80 ? '#f59e0b' : '#ef4444');
+        list.innerHTML += `
+            <div class="card" style="padding:15px; border-left: 5px solid ${color}; position:relative; margin-bottom:10px;">
+                <button onclick="delTestLog('prelims', ${i})" style="position:absolute; top:10px; right:10px; color:red; background:none;">&times;</button>
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-weight:bold;">${log.sub}</span>
+                    <span style="font-weight:bold; color:${color};">${log.score} Marks</span>
+                </div>
+                <div style="font-size:0.9rem; color:gray;">
+                    <span>✅${log.corr} ❌${log.wrong}</span> • <span>${log.acc}% Acc</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function addMainsLog() {
+    const name = document.getElementById('mTestName')?.value;
+    const paper = document.getElementById('mPaper')?.value;
+    const marks = parseFloat(document.getElementById('mMarks')?.value);
+    const total = parseFloat(document.getElementById('mTotal')?.value) || 250;
+
+    if (name && !isNaN(marks)) {
+        if (!appData.testAnalytics) appData.testAnalytics = { prelims: [], mains: [] };
+        appData.testAnalytics.mains.unshift({
+            date: new Date().toLocaleDateString(),
+            name, paper, marks, total
+        });
+        document.getElementById('mTestName').value = '';
+        document.getElementById('mMarks').value = '';
+        saveData();
+        renderMainsLogs();
+    }
+}
+
+function renderMainsLogs() {
+    const list = document.getElementById('mainsList');
+    if (!list) return;
+
+    if (!appData.testAnalytics) appData.testAnalytics = { prelims: [], mains: [] };
+    const logs = appData.testAnalytics.mains || [];
+
+    list.innerHTML = '';
+    logs.forEach((log, i) => {
+        const pct = Math.round((log.marks / log.total) * 100);
+        let color = pct >= 50 ? '#10b981' : (pct < 35 ? '#ef4444' : '#3b82f6');
+        list.innerHTML += `
+            <div class="card" style="padding:15px; border-left: 5px solid ${color}; position:relative; margin-bottom:10px;">
+                <button onclick="delTestLog('mains', ${i})" style="position:absolute; top:10px; right:10px; color:red; background:none;">&times;</button>
+                <div style="display:flex; justify-content:space-between;">
+                    <div><span style="color:${color}; font-weight:bold; font-size:0.8rem;">${log.paper}</span> <b>${log.name}</b></div>
+                    <div style="font-weight:bold; color:${color};">${log.marks}/${log.total}</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function delTestLog(type, index) {
+    if(confirm("Delete this log?")) {
+        appData.testAnalytics[type].splice(index, 1);
+        saveData();
+        if(type === 'prelims') renderPrelimsLogs();
+        else renderMainsLogs();
+    }
+}
+// ==========================================
+// APP: BOOK VAULT (Advanced Library)
+// ==========================================
+
+let bvFilter = 'all'; // Current filter state
+
+function filterBookVault(mode) {
+    bvFilter = mode;
+    
+    // Update Tabs UI
+    document.querySelectorAll('#book_vault .tab').forEach(t => t.classList.remove('active'));
+    if(mode === 'all') document.getElementById('tab-bv-all').classList.add('active');
+    if(mode === 'owned') document.getElementById('tab-bv-owned').classList.add('active');
+    if(mode === 'wishlist') document.getElementById('tab-bv-wish').classList.add('active');
+    if(mode === 'read') document.getElementById('tab-bv-read').classList.add('active');
+
+    renderBookVault();
+}
+
+function addBookVault() {
+    const title = document.getElementById('bvTitle').value.trim();
+    const own = document.getElementById('bvCheckOwn').checked;
+    const read = document.getElementById('bvCheckRead').checked;
+
+    if (title) {
+        if (!appData.bookVault) appData.bookVault = [];
+
+        appData.bookVault.unshift({
+            id: Date.now(), // Unique ID for safer deletion
+            title: title,
+            own: own,
+            read: read,
+            date: new Date().toLocaleDateString()
+        });
+
+        // Reset Inputs
+        document.getElementById('bvTitle').value = '';
+        document.getElementById('bvCheckOwn').checked = false;
+        document.getElementById('bvCheckRead').checked = false;
+
+        saveData();
+        renderBookVault();
+    } else {
+        alert("Please enter a book name!");
+    }
+}
+
+function renderBookVault() {
+    const list = document.getElementById('bvList');
+    if (!list) return; // Stop if screen not found
+
+    if (!appData.bookVault) appData.bookVault = [];
+
+    // 1. CALCULATE STATS
+    const totalBooks = appData.bookVault.length;
+    const totalRead = appData.bookVault.filter(b => b.read).length;
+    const readPct = totalBooks === 0 ? 0 : Math.round((totalRead / totalBooks) * 100);
+    
+    const countEl = document.getElementById('bvCount');
+    const readEl = document.getElementById('bvReadPct');
+    if(countEl) countEl.innerText = totalBooks;
+    if(readEl) readEl.innerText = readPct + "%";
+
+    // 2. FILTER & SEARCH
+    const search = document.getElementById('bvSearch').value.toLowerCase();
+    
+    let books = appData.bookVault.filter(b => b.title.toLowerCase().includes(search));
+
+    if (bvFilter === 'owned') books = books.filter(b => b.own);
+    if (bvFilter === 'wishlist') books = books.filter(b => !b.own);
+    if (bvFilter === 'read') books = books.filter(b => b.read);
+
+    // 3. RENDER
+    list.innerHTML = '';
+
+    if (books.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding:30px; color:gray;">No books found in "${bvFilter}".</div>`;
+        return;
+    }
+
+    books.forEach((book) => {
+        // Find real index in main array to ensure buttons work on the right item
+        const realIndex = appData.bookVault.findIndex(b => b.id === book.id);
+
+        // Dynamic Icons & Colors
+        const ownIcon = book.own 
+            ? '<i class="fas fa-check-circle" style="color:#10b981"></i> Owned' 
+            : '<i class="far fa-circle" style="color:gray"></i> Wishlist';
+        
+        const readIcon = book.read 
+            ? '<i class="fas fa-book-open" style="color:#3b82f6"></i> Read' 
+            : '<i class="fas fa-book" style="color:gray"></i> Unread';
+
+        const cardStyle = book.own ? 'background:var(--bg-card);' : 'background:rgba(0,0,0,0.2); opacity:0.9;';
+        const borderStyle = book.read ? 'border-left: 4px solid #3b82f6;' : 'border-left: 4px solid gray;';
+
+        list.innerHTML += `
+            <div class="card" style="padding:15px; ${cardStyle} ${borderStyle} display:flex; justify-content:space-between; align-items:center;">
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">${book.title}</div>
+                    
+                    <div style="display:flex; gap:15px; font-size:0.85rem; user-select:none;">
+                        <span onclick="toggleBV(${realIndex}, 'own')" style="cursor:pointer; padding:4px 8px; background:var(--bg); border-radius:4px; border:1px solid var(--border);">
+                            ${ownIcon}
+                        </span>
+                        <span onclick="toggleBV(${realIndex}, 'read')" style="cursor:pointer; padding:4px 8px; background:var(--bg); border-radius:4px; border:1px solid var(--border);">
+                            ${readIcon}
+                        </span>
+                    </div>
+                </div>
+                
+                <button onclick="deleteBV(${realIndex})" style="color:#ef4444; background:none; border:none; padding:10px; cursor:pointer;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+    });
+}
+
+function toggleBV(index, field) {
+    if (appData.bookVault[index]) {
+        appData.bookVault[index][field] = !appData.bookVault[index][field];
+        saveData();
+        renderBookVault();
+    }
+}
+
+function deleteBV(index) {
+    if (confirm("Remove this book from your Vault?")) {
+        appData.bookVault.splice(index, 1);
+        saveData();
+        renderBookVault();
+    }
+}
+// ==========================================
+// APP: NITI (POLICY GAME)
+// ==========================================
+
+let nitiState = { year: 1, funds: 100, supp: 50, dev: 50, stab: 50, activeEvent: null };
+
+const NITI_EVENTS = [
+    {
+        id: 1, title: "Flash Floods", icon: "🌊",
+        desc: "Heavy monsoon rains have flooded 3 tehsils. People are stranded on rooftops.",
+        opts: [
+            { t: "Deploy NDRF & Helicopters (High Cost)", f: -20, s: 15, d: -5, l: 0, msg: "Lives saved, but the treasury took a hit." },
+            { t: "Standard Relief Camps (Low Cost)", f: -5, s: -10, d: 0, l: -5, msg: "People are angry at the slow response." },
+            { t: "Divert Dam Water (Risky)", f: 0, s: -20, d: -10, l: -10, msg: "Crops destroyed downstream. Farmers are protesting." }
+        ]
+    },
+    {
+        id: 2, title: "Communal Tension", icon: "🔥",
+        desc: "Rumors on WhatsApp have sparked tension between two communities. A procession is planned tomorrow.",
+        opts: [
+            { t: "Ban Procession (Section 144)", f: 0, s: -15, d: 0, l: 20, msg: "Peace maintained, but religious groups are upset." },
+            { t: "Allow with Heavy Police", f: -10, s: 5, d: 0, l: -5, msg: "Procession passed, but minor skirmishes reported." },
+            { t: "Internet Shutdown", f: -5, s: -20, d: -5, l: 15, msg: "Rumors stopped, but students and businesses suffered." }
+        ]
+    },
+    {
+        id: 3, title: "Industrial Project", icon: "🏭",
+        desc: "A multinational company wants to set up a factory. It will bring jobs but displace tribal villages.",
+        opts: [
+            { t: "Approve Project", f: 30, s: -20, d: 25, l: -10, msg: "Economy booming, but tribals are protesting outside your office." },
+            { t: "Reject Project", f: 0, s: 20, d: -10, l: 5, msg: "Tribals are happy, but the CM is angry about lost investment." },
+            { t: "Delay for EIA Report", f: -5, s: 0, d: -5, l: 0, msg: "Both sides are annoyed by the bureaucracy." }
+        ]
+    },
+    {
+        id: 4, title: "Hospital Scam", icon: "🏥",
+        desc: "Your inspection reveals the CMO is stealing medicines. He is the Health Minister's nephew.",
+        opts: [
+            { t: "Suspend CMO immediately", f: 0, s: 20, d: 5, l: -10, msg: "Public loves you, but the Minister is threatening transfer." },
+            { t: "Issue Private Warning", f: 0, s: -10, d: -5, l: 5, msg: "Corruption continues, morale is down." },
+            { t: "Leak to Media", f: 0, s: 10, d: 0, l: -20, msg: "Huge scandal! Government is unstable." }
+        ]
+    },
+    {
+        id: 5, title: "Road Expansion", icon: "🚧",
+        desc: "To widen the highway, you need to demolish illegal shops and a small shrine.",
+        opts: [
+            { t: "Demolish Everything", f: -10, s: -25, d: 20, l: 10, msg: "Traffic is smooth, but you are extremely unpopular." },
+            { t: "Spare the Shrine", f: -5, s: 10, d: 5, l: -5, msg: "Traffic bottleneck remains. Transport lobby is unhappy." },
+            { t: "Cancel Expansion", f: 0, s: 5, d: -15, l: 0, msg: "Development stalled. Funds returned unutilized." }
+        ]
+    }
+];
+
+function startNitiGame() {
+    nitiState = { year: 1, funds: 100, supp: 50, dev: 50, stab: 50, activeEvent: null };
+    updateNitiUI();
+    document.getElementById('nitiOutcome').style.display = 'none';
+    nextNitiEvent();
+}
+
+function nextNitiEvent() {
+    // Game Over Checks
+    if (nitiState.funds <= 0) return nitiGameOver("Bankrupt! The state govt has dismissed you.");
+    if (nitiState.supp <= 10) return nitiGameOver("Riots! The public demanded your resignation.");
+    if (nitiState.stab <= 10) return nitiGameOver("Anarchy! Law & order collapsed. President's Rule imposed.");
+    if (nitiState.year > 5) return nitiGameOver("Victory! You completed your tenure successfully!", true);
+
+    // Pick Random Event
+    const event = NITI_EVENTS[Math.floor(Math.random() * NITI_EVENTS.length)];
+    nitiState.activeEvent = event;
+    nitiState.year++;
+
+    // Render Event
+    document.getElementById('nitiIcon').innerText = event.icon;
+    document.getElementById('nitiTitle').innerText = event.title;
+    document.getElementById('nitiDesc').innerText = event.desc;
+    document.getElementById('nitiYear').innerText = nitiState.year;
+
+    const optsDiv = document.getElementById('nitiOptions');
+    optsDiv.innerHTML = '';
+    
+    event.opts.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.innerText = opt.t;
+        btn.onclick = () => handleNitiChoice(i);
+        btn.style.padding = "12px";
+        btn.style.background = "var(--bg-card)";
+        btn.style.border = "1px solid var(--border)";
+        btn.style.color = "var(--text)";
+        btn.style.cursor = "pointer";
+        btn.onmouseover = () => btn.style.background = "var(--border)";
+        btn.onmouseout = () => btn.style.background = "var(--bg-card)";
+        optsDiv.appendChild(btn);
+    });
+}
+
+function handleNitiChoice(idx) {
+    const choice = nitiState.activeEvent.opts[idx];
+    
+    // Apply Effects
+    nitiState.funds += choice.f;
+    nitiState.supp += choice.s;
+    nitiState.dev += choice.d;
+    nitiState.stab += choice.l;
+
+    // Cap stats at 100
+    if(nitiState.supp > 100) nitiState.supp = 100;
+    if(nitiState.dev > 100) nitiState.dev = 100;
+    if(nitiState.stab > 100) nitiState.stab = 100;
+
+    // Show Feedback
+    const fb = document.getElementById('nitiOutcome');
+    fb.style.display = 'block';
+    document.getElementById('nitiFeedback').innerText = choice.msg;
+    
+    // Color Feedback
+    let changes = [];
+    if(choice.f !== 0) changes.push((choice.f > 0 ? "+" : "") + choice.f + " Fund");
+    if(choice.s !== 0) changes.push((choice.s > 0 ? "+" : "") + choice.s + " Supp");
+    document.getElementById('nitiFeedback').innerHTML += `<br><small style='color:var(--primary)'>(${changes.join(', ')})</small>`;
+
+    updateNitiUI();
+    
+    // Delay next event for dramatic effect
+    setTimeout(nextNitiEvent, 1500);
+}
+
+function updateNitiUI() {
+    document.getElementById('nStat-fund').innerText = nitiState.funds;
+    document.getElementById('nStat-supp').innerText = nitiState.supp;
+    document.getElementById('nStat-dev').innerText = nitiState.dev;
+    document.getElementById('nStat-stab').innerText = nitiState.stab;
+}
+
+function nitiGameOver(msg, win=false) {
+    const card = document.getElementById('nitiEventCard');
+    card.innerHTML = `
+        <div style="font-size:4rem; margin-bottom:15px;">${win ? '🏆' : '💀'}</div>
+        <h2>${win ? 'Promoted!' : 'Terminated'}</h2>
+        <p style="margin:20px 0;">${msg}</p>
+        <button onclick="startNitiGame()" style="background:var(--primary); padding:10px 20px;">Play Again</button>
+    `;
+}
+// ==========================================
+// APP: THE STOIC JOURNAL (Sentiment Analysis)
+// ==========================================
+
+const STOIC_DICT = {
+    pos: ['calm', 'peace', 'good', 'great', 'happy', 'joy', 'love', 'focus', 'strong', 'courage', 'wise', 'wisdom', 'justice', 'temperate', 'control', 'better', 'improve', 'win', 'won', 'success', 'progress', 'confident', 'grateful', 'content', 'patient', 'learn', 'understood', 'accepted', 'productive'],
+    neg: ['angry', 'anger', 'sad', 'bad', 'terrible', 'worst', 'fear', 'afraid', 'anxious', 'stress', 'fail', 'lost', 'waste', 'tired', 'exhausted', 'pain', 'hurt', 'grief', 'hate', 'jealous', 'envy', 'distracted', 'weak', 'complaint', 'blame', 'lazy']
+};
+
+function addStoicEntry() {
+    const text = document.getElementById('stoicInput').value;
+    if(text) {
+        if(!appData.stoicJournal) appData.stoicJournal = [];
+        
+        // Analyze Sentiment
+        const score = analyzeStoicSentiment(text);
+        
+        appData.stoicJournal.unshift({
+            date: new Date().toLocaleDateString(),
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            text: text,
+            score: score
+        });
+
+        document.getElementById('stoicInput').value = '';
+        saveData();
+        renderStoicJournal();
+    } else {
+        alert("Write something first, stoic.");
+    }
+}
+
+function analyzeStoicSentiment(text) {
+    const words = text.toLowerCase().match(/\b(\w+)\b/g) || [];
+    let score = 0;
+    
+    words.forEach(w => {
+        if(STOIC_DICT.pos.includes(w)) score += 1;
+        if(STOIC_DICT.neg.includes(w)) score -= 1;
+    });
+
+    // Clamp score between -5 and 5 for consistent graphing
+    return Math.max(-5, Math.min(5, score));
+}
+
+function renderStoicJournal() {
+    const list = document.getElementById('stoicList');
+    const chart = document.getElementById('stoicChart');
+    const trendDisplay = document.getElementById('stoicTrendScore');
+    
+    if(!list || !chart) return;
+
+    if(!appData.stoicJournal) appData.stoicJournal = [];
+
+    // 1. RENDER LIST
+    list.innerHTML = '';
+    
+    if(appData.stoicJournal.length === 0) {
+        list.innerHTML = '<div style="text-align:center; color:gray; padding:20px;">No entries yet. Reflect on your day.</div>';
+    }
+
+    appData.stoicJournal.forEach((entry, i) => {
+        let color = 'gray';
+        let mood = 'Neutral';
+        
+        if(entry.score > 0) { color = '#10b981'; mood = 'Positive'; }
+        if(entry.score < 0) { color = '#ef4444'; mood = 'Negative'; }
+
+        list.innerHTML += `
+            <div class="card" style="padding:15px; border-left: 4px solid ${color}; position:relative;">
+                 <button onclick="deleteStoicEntry(${i})" style="position:absolute; top:10px; right:10px; color:red; background:none; border:none; cursor:pointer;">&times;</button>
+                <div style="font-size:0.8rem; color:gray; margin-bottom:5px;">${entry.date} • ${entry.time}</div>
+                <div style="font-style:italic; margin-bottom:10px;">"${entry.text}"</div>
+                <div style="font-weight:bold; color:${color}; font-size:0.85rem; display:flex; align-items:center; gap:5px;">
+                    Positivity Score: ${entry.score} (${mood})
+                </div>
+            </div>
+        `;
+    });
+
+    // 2. RENDER CHART (Last 7 Entries)
+    chart.innerHTML = '';
+    const recent = appData.stoicJournal.slice(0, 7).reverse(); // Oldest to newest of the last 7
+    
+    if(recent.length === 0) {
+        chart.innerHTML = '<div style="width:100%; text-align:center; color:gray; align-self:center;">Chart empty</div>';
+    } else {
+        recent.forEach(entry => {
+            // Calculate Bar Height
+            // Base line is 50%. Score of 0 = 50% height.
+            // Max score (5) = 100%, Min score (-5) = 0%
+            let heightPct = 50 + (entry.score * 10);
+            heightPct = Math.max(10, Math.min(100, heightPct)); // Keep between 10% and 100%
+            
+            let barColor = entry.score >= 0 ? '#10b981' : '#ef4444';
+            let opacity = 0.6 + (Math.abs(entry.score) / 10); // More intense score = darker color
+            
+            chart.innerHTML += `
+                <div style="flex:1; background:${barColor}; height:${heightPct}%; border-radius:3px 3px 0 0; opacity:${opacity}; position:relative;" title="${entry.date}: Score ${entry.score}"></div>
+            `;
+        });
+    }
+
+    // 3. OVERALL TREND TEXT
+    const totalScore = appData.stoicJournal.reduce((sum, e) => sum + e.score, 0);
+    if(totalScore > 2) { trendDisplay.innerText = "Positive (Stoic)"; trendDisplay.style.color = "#10b981"; }
+    else if(totalScore < -2) { trendDisplay.innerText = "Troubled (Negative)"; trendDisplay.style.color = "#ef4444"; }
+    else { trendDisplay.innerText = "Balanced (Neutral)"; trendDisplay.style.color = "gray"; }
+}
+
+function deleteStoicEntry(i) {
+    if(confirm("Delete this reflection?")) {
+        appData.stoicJournal.splice(i, 1);
+        saveData();
+        renderStoicJournal();
+    }
+}
+// ==========================================
+// APP: FOCUS CHAIN
+// ==========================================
+
+let chainInterval = null;
+let chainState = { active: false, paused: false, currentIdx: -1, remainingSeconds: 0 };
+
+function renderFocusChain() {
+    const list = document.getElementById('fcList');
+    if (!list) return;
+
+    if (!appData.focusChain) appData.focusChain = [];
+    
+    // 1. Calculate Total Time
+    const totalMins = appData.focusChain.reduce((sum, item) => sum + item.duration, 0);
+    document.getElementById('fcTotalTime').innerText = `${totalMins}m Sequence`;
+
+    // 2. Render List
+    list.innerHTML = '';
+    if(appData.focusChain.length === 0) {
+        list.innerHTML = `<div style="text-align:center; color:gray; padding:20px;">No steps added. Build your study plan!</div>`;
+    }
+
+    appData.focusChain.forEach((step, i) => {
+        let statusIcon = '<i class="far fa-circle"></i>';
+        let statusClass = '';
+        let rowStyle = 'opacity: 1;';
+
+        if (step.status === 'done') {
+            statusIcon = '<i class="fas fa-check-circle" style="color:#10b981"></i>';
+            rowStyle = 'opacity: 0.5; text-decoration: line-through;';
+        } else if (step.status === 'active') {
+            statusIcon = '<i class="fas fa-play-circle" style="color:#6366f1; animation: pulse 2s infinite;"></i>';
+            rowStyle = 'border: 2px solid #6366f1; background: var(--bg-card);';
+        }
+
+        list.innerHTML += `
+            <div class="card" style="padding:15px; display:flex; justify-content:space-between; align-items:center; ${rowStyle}">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <span style="font-size:1.2rem;">${statusIcon}</span>
+                    <div>
+                        <div style="font-weight:bold; font-size:1.1rem;">${step.subject}</div>
+                        <div style="font-size:0.9rem; color:gray;">${step.duration} Minutes</div>
+                    </div>
+                </div>
+                ${step.status === 'pending' ? `<button onclick="removeChainStep(${i})" style="color:red; background:none; padding:5px;"><i class="fas fa-trash"></i></button>` : ''}
+            </div>
+        `;
+    });
+}
+
+function addChainStep() {
+    const sub = document.getElementById('fcInputSub').value;
+    const time = parseInt(document.getElementById('fcInputTime').value);
+
+    if (sub && time) {
+        if (!appData.focusChain) appData.focusChain = [];
+        appData.focusChain.push({ subject: sub, duration: time, status: 'pending' }); // status: pending, active, done
+        
+        document.getElementById('fcInputSub').value = '';
+        document.getElementById('fcInputTime').value = '';
+        saveData();
+        renderFocusChain();
+    }
+}
+
+function removeChainStep(i) {
+    appData.focusChain.splice(i, 1);
+    saveData();
+    renderFocusChain();
+}
+
+function startFocusChain() {
+    if (!appData.focusChain || appData.focusChain.length === 0) return alert("Add steps first!");
+
+    // Find first pending step
+    const nextIdx = appData.focusChain.findIndex(s => s.status === 'pending');
+    
+    if (nextIdx === -1) {
+        if(confirm("Chain complete! Restart?")) resetChain();
+        return;
+    }
+
+    // Initialize Step
+    chainState.currentIdx = nextIdx;
+    chainState.remainingSeconds = appData.focusChain[nextIdx].duration * 60;
+    chainState.active = true;
+    chainState.paused = false;
+
+    // Update Data
+    appData.focusChain.forEach(s => { if(s.status === 'active') s.status = 'done'; }); // Safety cleanup
+    appData.focusChain[nextIdx].status = 'active';
+    
+    // UI Updates
+    document.getElementById('fcActivePanel').style.display = 'block';
+    document.getElementById('fcActiveSubject').innerText = appData.focusChain[nextIdx].subject;
+    document.getElementById('fcPauseBtn').innerText = "Pause";
+    
+    saveData();
+    renderFocusChain();
+    
+    if (chainInterval) clearInterval(chainInterval);
+    chainInterval = setInterval(chainTick, 1000);
+    chainTick(); // Instant update
+}
+
+function chainTick() {
+    if (!chainState.active || chainState.paused) return;
+
+    chainState.remainingSeconds--;
+
+    // Format Time
+    const m = Math.floor(chainState.remainingSeconds / 60);
+    const s = chainState.remainingSeconds % 60;
+    document.getElementById('fcTimerDisplay').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    document.title = `${m}:${s} - Focus Chain`;
+
+    if (chainState.remainingSeconds <= 0) {
+        // Step Complete
+        clearInterval(chainInterval);
+        try { new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play(); } catch(e){}
+        
+        appData.focusChain[chainState.currentIdx].status = 'done';
+        saveData();
+        renderFocusChain();
+        
+        // Auto-start next? Or wait? 
+        // Let's wait 3 seconds then ask/auto-move
+        setTimeout(() => {
+             if(confirm(`"${appData.focusChain[chainState.currentIdx].subject}" Finished! Ready for next?`)) {
+                 startFocusChain(); // Recursively starts next pending
+             } else {
+                 document.getElementById('fcActivePanel').style.display = 'none';
+                 document.title = "Chain Paused";
+             }
+        }, 1000);
+    }
+}
+
+function pauseChain() {
+    chainState.paused = !chainState.paused;
+    document.getElementById('fcPauseBtn').innerText = chainState.paused ? "Resume" : "Pause";
+}
+
+function skipChainStep() {
+    if(confirm("Skip this step and mark as done?")) {
+        clearInterval(chainInterval);
+        appData.focusChain[chainState.currentIdx].status = 'done';
+        saveData();
+        renderFocusChain();
+        startFocusChain(); // Move to next
+    }
+}
+
+function resetChain() {
+    if(confirm("Reset all progress?")) {
+        clearInterval(chainInterval);
+        chainState.active = false;
+        document.getElementById('fcActivePanel').style.display = 'none';
+        document.title = "UPSC Command Center";
+        
+        if(appData.focusChain) {
+            appData.focusChain.forEach(s => s.status = 'pending');
+        }
+        saveData();
+        renderFocusChain();
     }
 }
