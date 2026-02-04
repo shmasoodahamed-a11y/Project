@@ -347,13 +347,27 @@
     </div>
 
     <div id="appsModal" class="modal">
-        <div class="modal-content" style="width: 600px;">
+        <div class="modal-content" style="width: 900px;">
             <div style="display:flex; justify-content:space-between;"><h2>Apps</h2><button onclick="closeModal('appsModal')" class="btn-cancel">X</button></div>
             <div class="apps-grid">
                 <div class="app-icon" onclick="selectApp('chef')"><i class="fas fa-utensils" style="color:#f59e0b"></i><span>Chef</span></div>
               <div class="app-icon" onclick="selectApp('mapmaster')">
     <i class="fas fa-globe-americas" style="color:#0ea5e9"></i>
     <span>MapMaster</span>
+</div>
+              <div class="app-icon" onclick="selectApp('orator')">
+    <i class="fas fa-microphone-alt" style="color:#ef4444"></i>
+    <span>Orator</span>
+</div>
+
+<div class="app-icon" onclick="selectApp('resolver')">
+    <i class="fas fa-balance-scale-right" style="color:#3b82f6"></i>
+    <span>Resolver</span>
+</div>
+
+<div class="app-icon" onclick="selectApp('soundscapes')">
+    <i class="fas fa-headphones-alt" style="color:#10b981"></i>
+    <span>Sounds</span>
 </div>
               <div class="app-icon" onclick="selectApp('stoic_journal')">
     <i class="fas fa-pen-fancy" style="color:#64748b"></i>
@@ -754,6 +768,50 @@
 
     <div id="fcList" style="display:grid; gap:10px; max-height:50vh; overflow-y:auto;">
         </div>
+</div>
+          <div id="orator" class="section">
+    <h2><i class="fas fa-microphone-alt"></i> The Orator</h2>
+    <div class="card" style="text-align:center; padding: 40px;">
+        <h3 id="oratorTopic" style="font-size: 1.5rem; margin-bottom: 20px; color: var(--primary);">Press Start</h3>
+        <div id="oratorTimer" style="font-size: 3rem; font-weight: bold; font-family: monospace; margin-bottom: 20px;">02:00</div>
+        <button onclick="startOrator()" style="background: var(--success);">Generate Topic & Start</button>
+    </div>
+</div>
+
+<div id="soundscapes" class="section">
+    <h2><i class="fas fa-headphones-alt"></i> Focus Audio</h2>
+    <div class="card">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <button onclick="toggleNoise('brown')" style="background:#4b5563; padding:20px;">🟤 Brown Noise</button>
+            <button onclick="toggleNoise('pink')" style="background:#db2777; padding:20px;">🌸 Pink Noise</button>
+            <button onclick="toggleNoise('rain')" style="background:#3b82f6; padding:20px;">🌧️ Heavy Rain</button>
+            <button onclick="stopAllNoise()" style="background:var(--danger); padding:20px;">🔇 Silence</button>
+        </div>
+        <p style="text-align:center; margin-top:15px; color:gray; font-size:0.8rem;">*Uses synthesized audio (No download needed)</p>
+    </div>
+</div>
+          <div id="resolver" class="section">
+    <h2><i class="fas fa-balance-scale-right"></i> The Resolver</h2>
+    <div class="card">
+        <h3>Compare Two Options</h3>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="resOpt1" placeholder="Option A (e.g. Sleep)" class="modal-input">
+            <input type="text" id="resOpt2" placeholder="Option B (e.g. Study)" class="modal-input">
+        </div>
+        
+        <div style="margin-bottom:15px;">
+            <label>Enjoyment (Weight: 1-10)</label>
+            <input type="range" id="w_enjoy" min="1" max="10" value="5" style="width:100%">
+        </div>
+        <div style="margin-bottom:15px;">
+            <label>Long-term Benefit (Weight: 1-10)</label>
+            <input type="range" id="w_benefit" min="1" max="10" value="8" style="width:100%">
+        </div>
+        
+        <button onclick="calculateDecision()" style="background:var(--primary); width:100%;">Analyze</button>
+        
+        <div id="resResult" style="margin-top:20px; text-align:center; font-weight:bold; font-size:1.2rem; display:none;"></div>
+    </div>
 </div>
           
     <script src="script.js"></script>

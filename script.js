@@ -325,13 +325,17 @@ function showSection(id) {
        if(id === 'yearCompass') renderYearCompass();
       if(id === 'events') renderEvents();
         if(id === 'tribe') renderTribe();
-       if(id === 'mood') renderMood();
+       if(id ==="orator") renderOrator();
+      if(id==='resolver') renderResolver();
+      if(id==='soundscapes') renderSoundscapes ();
+ 
 if(id === 'nottodo') renderNotToDo();
         if(id === 'ledger') renderLedger();
         if(id === 'identity') renderIdentity();
         if(id==='analytics') { renderCharts(); renderHistory(); renderSyllabusChart(); }
         if(id==='tests') renderMockTests(); 
         if(id==='retro') renderRetroStats(); 
+       
         if(id==='newsroom') refreshNews();
         if(id==='warroom') { setTimeout(() => { if(map) map.invalidateSize(); else initMap(); }, 300); }
         if(id==='whiteboard') { setTimeout(() => initWhiteboard(), 200); }
@@ -2998,5 +3002,86 @@ function resetChain() {
         }
         saveData();
         renderFocusChain();
+    }
+}
+// --- ORATOR LOGIC ---
+const oratorTopics = [
+    "Is AI a threat to humanity?", "One Nation One Election", 
+    "The relevance of Gandhi today", "Universal Basic Income",
+    "Space Exploration vs Poverty Elimination", "Cryptocurrency Future"
+];
+let oratorInterval;
+
+function startOrator() {
+    // 1. Pick Topic
+    const topic = oratorTopics[Math.floor(Math.random() * oratorTopics.length)];
+    document.getElementById('oratorTopic').innerText = topic;
+    
+    // 2. Start Timer (2 mins)
+    let timeLeft = 120;
+    clearInterval(oratorInterval);
+    
+    oratorInterval = setInterval(() => {
+        timeLeft--;
+        const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+        const s = (timeLeft % 60).toString().padStart(2,'0');
+        document.getElementById('oratorTimer').innerText = `${m}:${s}`;
+        
+        if(timeLeft <= 0) {
+            clearInterval(oratorInterval);
+            alert("Time's Up! Stop Speaking.");
+        }
+    }, 1000);
+}
+
+// --- SOUNDSCAPES LOGIC (Web Audio API) ---
+let audioCtx;
+let noiseSource;
+
+function toggleNoise(type) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (noiseSource) { noiseSource.stop(); noiseSource = null; }
+    
+    const bufferSize = audioCtx.sampleRate * 2; // 2 seconds buffer
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        if(type === 'brown') {
+            data[i] = (lastOut + (0.02 * white)) / 1.02;
+            lastOut = data[i];
+            data[i] *= 3.5; 
+        } else {
+            // Simple white noise for others for now
+            data[i] = white * 0.5;
+        }
+    }
+    
+    noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = buffer;
+    noiseSource.loop = true;
+    noiseSource.connect(audioCtx.destination);
+    noiseSource.start();
+}
+let lastOut = 0;
+
+function stopAllNoise() {
+    if (noiseSource) { noiseSource.stop(); noiseSource = null; }
+}
+function renderResolver() {
+    // 1. Clear text inputs
+    document.getElementById('resOpt1').value = "";
+    document.getElementById('resOpt2').value = "";
+    
+    // 2. Reset sliders to default (middle)
+    document.getElementById('w_enjoy').value = 5;
+    document.getElementById('w_benefit').value = 8;
+    
+    // 3. Hide the previous result
+    const resultDiv = document.getElementById('resResult');
+    if (resultDiv) {
+        resultDiv.style.display = 'none';
+        resultDiv.innerText = "";
     }
 }

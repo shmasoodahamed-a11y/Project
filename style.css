@@ -115,45 +115,42 @@ th { background: var(--header-row); position: sticky; top: 0; }
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 100; }
 .modal-content { background: var(--card-bg); padding: 20px; border-radius: 8px; width: 400px; color: var(--text); border: 1px solid var(--border); }
 .modal-input { width: 100%; margin: 10px 0; padding: 10px; }
-/* --- APP GRID LAYOUT (Mobile Style) --- */
+/* --- 10x5 HIGH DENSITY GRID --- */
 .apps-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 5 Columns */
-    gap: 10px; /* Space between icons */
-    padding: 15px 0;
+    grid-template-columns: repeat(10, 1fr); /* The 10-column Magic */
+    gap: 8px; /* Tighter gaps */
+    padding: 10px 0;
 }
 
-/* Style for each App Icon */
+/* Adjust icons to fit the dense grid */
 .apps-grid > div, .app-icon {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 15px 5px;
-    border-radius: 15px; /* Rounded corners like mobile apps */
+    padding: 10px 2px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: transparent;
 }
 
-/* Hover Effect */
 .apps-grid > div:hover, .app-icon:hover {
-    background-color: var(--bg); /* Light highlight */
-    transform: translateY(-5px); /* Pops up slightly */
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background-color: var(--border);
+    transform: translateY(-2px);
 }
 
-/* Icon Styling */
 .apps-grid > div i, .app-icon i {
-    font-size: 2rem; /* Make icons bigger */
-    margin-bottom: 10px;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    font-size: 1.6rem; /* Slightly smaller than before */
+    margin-bottom: 5px;
 }
 
-/* Text Styling */
 .apps-grid > div span, .app-icon span {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text);
+    font-size: 0.7rem; /* Compact text */
+    font-weight: 500;
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* ... if text is too long */
+    max-width: 100%;
 }
