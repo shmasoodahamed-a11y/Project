@@ -154,3 +154,142 @@ th { background: var(--header-row); position: sticky; top: 0; }
     text-overflow: ellipsis; /* ... if text is too long */
     max-width: 100%;
 }
+/* NOTESPACE STYLES */
+
+/* Notebook Item */
+.ns-notebook {
+    cursor: pointer;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #374151;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.ns-notebook:hover { background: #374151; }
+.ns-notebook.active { background: #2563eb; color: white; }
+
+/* Section List (Hidden inside Notebook) */
+.ns-section-group {
+    display: none;
+    background: #111827;
+    padding-left: 10px;
+}
+.ns-section-group.open { display: block; }
+
+/* Section Item */
+.ns-section {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    color: #9ca3af;
+    cursor: pointer;
+    border-left: 2px solid #374151;
+    margin-top: 2px;
+}
+.ns-section:hover { color: white; border-left-color: #60a5fa; }
+.ns-section.active { color: white; border-left-color: #2563eb; background: #1f2937; }
+
+/* Page Item */
+.ns-page-item {
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+.ns-page-item:hover { background: var(--bg); }
+.ns-page-item.active { background: var(--primary); color: white; }
+
+/* Toolbar Buttons */
+#nsToolbar button {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+#nsToolbar button:hover { background: var(--border); }
+/* KANBAN STYLES */
+.kanban-col {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.kanban-header {
+    padding: 10px;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    font-size: 0.9rem;
+}
+.kanban-input-area { padding: 10px; background: var(--card-bg); border-bottom: 1px solid var(--border); }
+.kanban-list { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.kanban-card {
+    background: var(--card-bg);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    cursor: grab;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex; justify-content: space-between;
+}
+.kanban-card:active { cursor: grabbing; opacity: 0.8; }
+
+
+/* OMR DOJO STYLES */
+.omr-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); /* Responsive columns */
+    gap: 10px;
+}
+
+.omr-row {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    padding: 8px;
+    border-radius: 6px;
+    justify-content: space-between;
+    border: 1px solid var(--border);
+}
+
+.omr-q-num {
+    font-weight: bold;
+    font-size: 0.9rem;
+    width: 25px;
+    color: var(--text-muted);
+}
+
+.omr-bubbles {
+    display: flex;
+    gap: 8px;
+}
+
+.omr-bubble {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--text-muted);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.omr-bubble:hover { background: var(--border); }
+
+/* User Selection */
+.omr-bubble.selected {
+    background: #3b82f6; /* Blue fill */
+    color: white;
+    border-color: #3b82f6;
+}
+
+/* Analysis Colors */
+.omr-bubble.correct { background: #10b981; border-color: #10b981; color:white; } /* Green */
+.omr-bubble.wrong { background: #ef4444; border-color: #ef4444; color:white; } /* Red */
+.omr-bubble.missed { border: 2px solid #10b981; color: #10b981; } /* Green Ring (Should have been this) */

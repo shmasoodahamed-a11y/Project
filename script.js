@@ -328,14 +328,16 @@ function showSection(id) {
        if(id ==="orator") renderOrator();
       if(id==='resolver') renderResolver();
       if(id==='soundscapes') renderSoundscapes ();
- 
+     if (id === 'omr_dojo') initOMR();
+      
 if(id === 'nottodo') renderNotToDo();
         if(id === 'ledger') renderLedger();
         if(id === 'identity') renderIdentity();
         if(id==='analytics') { renderCharts(); renderHistory(); renderSyllabusChart(); }
         if(id==='tests') renderMockTests(); 
         if(id==='retro') renderRetroStats(); 
-       
+        if (id === 'notespace') renderNoteSpace();
+    
         if(id==='newsroom') refreshNews();
         if(id==='warroom') { setTimeout(() => { if(map) map.invalidateSize(); else initMap(); }, 300); }
         if(id==='whiteboard') { setTimeout(() => initWhiteboard(), 200); }
@@ -349,6 +351,10 @@ if(id === 'nottodo') renderNotToDo();
     // Optional: Only start if not already running
     if(nitiState.year === 1) updateNitiUI();
 }
+     
+    if (id === 'kanban')    renderKanban();
+ 
+   
   
         if(id==='watchlist') renderWatchlist();
         if(id==='bucket') renderBucket();
@@ -3083,5 +3089,507 @@ function renderResolver() {
     if (resultDiv) {
         resultDiv.style.display = 'none';
         resultDiv.innerText = "";
+    }
+}
+/* =========================================
+   NOTESPACE LOGIC (Notebooks -> Sections -> Pages)
+   ========================================= */
+
+// Data Structure:
+// [ { id, title, sections: [ { id, title, pages: [ { id, title, content } ] } ] } ]
+
+let nsData = JSON.parse(localStorage.getItem('notespaceDB')) || [];
+let activeNbId = null;
+let activeSecId = null;
+let activePageId = null;
+
+function renderNoteSpace() {
+    const list = document.getElementById('nsNotebookList');
+    list.innerHTML = "";
+    
+    nsData.forEach(nb => {
+        // 1. Create Notebook Div
+        const nbDiv = document.createElement('div');
+        nbDiv.className = `ns-notebook ${activeNbId === nb.id ? 'active' : ''}`;
+        nbDiv.innerHTML = `<span>📚 ${nb.title}</span> <button onclick="addNsSection('${nb.id}', event)" style="padding:0 5px; font-size:0.6rem; background:#4b5563;">+</button>`;
+        nbDiv.onclick = () => toggleNsNotebook(nb.id);
+        
+        // 2. Create Section Container
+        const secGroup = document.createElement('div');
+        secGroup.className = `ns-section-group ${activeNbId === nb.id ? 'open' : ''}`;
+        
+        nb.sections.forEach(sec => {
+            const secDiv = document.createElement('div');
+            secDiv.className = `ns-section ${activeSecId === sec.id ? 'active' : ''}`;
+            secDiv.innerText = `📁 ${sec.title}`;
+            secDiv.onclick = (e) => { e.stopPropagation(); selectNsSection(nb.id, sec.id); };
+            secGroup.appendChild(secDiv);
+        });
+
+        list.appendChild(nbDiv);
+        list.appendChild(secGroup);
+    });
+}
+
+// --- ACTIONS ---
+
+function addNotebook() {
+    const title = prompt("Notebook Name (e.g. General Studies):");
+    if(!title) return;
+    
+    const newNb = { id: Date.now().toString(), title: title, sections: [] };
+    nsData.push(newNb);
+    saveNsData();
+    renderNoteSpace();
+}
+
+function addNsSection(nbId, e) {
+    if(e) e.stopPropagation();
+    const title = prompt("New Section Name (e.g. History):");
+    if(!title) return;
+    
+    const nb = nsData.find(n => n.id === nbId);
+    if(nb) {
+        nb.sections.push({ id: Date.now().toString(), title: title, pages: [] });
+        saveNsData();
+        // Auto expand this notebook
+        activeNbId = nbId; 
+        renderNoteSpace();
+    }
+}
+
+function toggleNsNotebook(nbId) {
+    // Just toggles the accordion view
+    activeNbId = (activeNbId === nbId) ? null : nbId;
+    renderNoteSpace();
+}
+
+function selectNsSection(nbId, secId) {
+    activeNbId = nbId;
+    activeSecId = secId;
+    activePageId = null; // Reset page selection
+    
+    renderNoteSpace(); // To highlight selection
+    renderNsPageList();
+    
+    // Reset Editor
+    document.getElementById('nsEditor').style.display = 'none';
+    document.getElementById('nsToolbar').style.display = 'none';
+    document.getElementById('nsPageTitle').style.display = 'none';
+    document.getElementById('nsEmptyState').style.display = 'flex';
+}
+
+function renderNsPageList() {
+    const pageList = document.getElementById('nsPageList');
+    pageList.innerHTML = "";
+    
+    const nb = nsData.find(n => n.id === activeNbId);
+    if(!nb) return;
+    const sec = nb.sections.find(s => s.id === activeSecId);
+    if(!sec) return;
+    
+    document.getElementById('nsCurrentSectionName').innerText = sec.title;
+    document.getElementById('btnAddPage').style.display = 'block';
+
+    if(sec.pages.length === 0) {
+        pageList.innerHTML = "<div style='padding:20px; color:gray; text-align:center; font-size:0.8rem;'>No pages yet.</div>";
+        return;
+    }
+
+    sec.pages.forEach(pg => {
+        const pDiv = document.createElement('div');
+        pDiv.className = `ns-page-item ${activePageId === pg.id ? 'active' : ''}`;
+        pDiv.innerText = pg.title || "Untitled Page";
+        pDiv.onclick = () => loadNsPage(pg.id);
+        pageList.appendChild(pDiv);
+    });
+}
+
+function addNsPage() {
+    const nb = nsData.find(n => n.id === activeNbId);
+    const sec = nb.sections.find(s => s.id === activeSecId);
+    
+    const newPage = { id: Date.now().toString(), title: "Untitled Page", content: "" };
+    sec.pages.push(newPage);
+    saveNsData();
+    loadNsPage(newPage.id); // Auto open
+}
+
+function loadNsPage(pageId) {
+    activePageId = pageId;
+    renderNsPageList(); // Update highlights
+    
+    // Find Data
+    const nb = nsData.find(n => n.id === activeNbId);
+    const sec = nb.sections.find(s => s.id === activeSecId);
+    const pg = sec.pages.find(p => p.id === pageId);
+    
+    // Show Editor
+    document.getElementById('nsEmptyState').style.display = 'none';
+    document.getElementById('nsToolbar').style.display = 'flex';
+    
+    const titleInput = document.getElementById('nsPageTitle');
+    const editor = document.getElementById('nsEditor');
+    
+    titleInput.style.display = 'block';
+    editor.style.display = 'block';
+    
+    titleInput.value = pg.title;
+    editor.innerHTML = pg.content;
+}
+
+function saveNsCurrentPage() {
+    if(!activePageId) return;
+    
+    const nb = nsData.find(n => n.id === activeNbId);
+    const sec = nb.sections.find(s => s.id === activeSecId);
+    const pg = sec.pages.find(p => p.id === activePageId);
+    
+    pg.title = document.getElementById('nsPageTitle').value;
+    pg.content = document.getElementById('nsEditor').innerHTML;
+    
+    saveNsData();
+    
+    // Update list title dynamically if title changed
+    renderNsPageList(); 
+}
+
+function saveNsData() {
+    localStorage.setItem('notespaceDB', JSON.stringify(nsData));
+}
+
+// --- EDITOR TOOLBAR LOGIC ---
+function execNsCmd(command, value = null) {
+    document.execCommand(command, false, value);
+    document.getElementById('nsEditor').focus();
+}
+
+// --- 1. KANBAN COMMAND ---
+let kanbanData = { todo: [], doing: [], done: [] };
+let dragSrcCol = null;
+let dragTaskIdx = null;
+
+function renderKanban() {
+    // Render all 3 columns
+    ['todo', 'doing', 'done'].forEach(col => {
+        const list = document.getElementById(`list-${col}`);
+        const count = document.getElementById(`count-${col}`);
+        list.innerHTML = "";
+        count.innerText = kanbanData[col].length;
+        
+        kanbanData[col].forEach((task, idx) => {
+            const div = document.createElement('div');
+            div.className = 'kanban-card';
+            div.draggable = true;
+            div.innerHTML = `<span>${task}</span> <i class="fas fa-times" style="color:red; cursor:pointer;" onclick="delKanbanTask('${col}', ${idx})"></i>`;
+            
+            // Drag Events
+            div.ondragstart = (e) => {
+                dragSrcCol = col;
+                dragTaskIdx = idx;
+                e.dataTransfer.effectAllowed = "move";
+                div.style.opacity = '0.4';
+            };
+            div.ondragend = () => { div.style.opacity = '1'; };
+            
+            list.appendChild(div);
+        });
+    });
+}
+
+function addKanbanTask(col) {
+    const input = document.getElementById(`input-${col}`);
+    const val = input.value.trim();
+    if(val) {
+        kanbanData[col].push(val);
+        input.value = "";
+        renderKanban();
+    }
+}
+
+function delKanbanTask(col, idx) {
+    kanbanData[col].splice(idx, 1);
+    renderKanban();
+}
+
+function kanbanAllowDrop(e) { e.preventDefault(); }
+
+function kanbanDrop(e) {
+    e.preventDefault();
+    // Identify target column based on ID climbing
+    let target = e.target;
+    while(target && !target.id.startsWith('col-')) {
+        target = target.parentElement;
+    }
+    if(!target) return;
+    
+    const targetCol = target.id.split('-')[1];
+    
+    // Move Data
+    if(dragSrcCol !== null && dragTaskIdx !== null) {
+        const task = kanbanData[dragSrcCol].splice(dragTaskIdx, 1)[0];
+        kanbanData[targetCol].push(task);
+        renderKanban();
+        dragSrcCol = null; dragTaskIdx = null;
+    }
+}
+
+function clearKanban() {
+    if(confirm("Clear board?")) {
+        kanbanData = { todo: [], doing: [], done: [] };
+        renderKanban();
+    }
+}
+
+
+/* =========================================
+   OMR DOJO v2.0 (Chapter-wise + Logging)
+   ========================================= */
+
+let omrState = {
+    active: false, questions: 50, answers: {}, key: {}, 
+    timer: null, timeLeft: 0, manualCheckMode: false,
+    subject: "", chapter: ""
+};
+
+// 1. SETUP FUNCTIONS
+function initOMR() {
+    // Populate Subject Dropdown from Global Syllabus
+    const subSel = document.getElementById('omrSubject');
+    if(subSel && subSel.options.length === 1) { // Only do it once
+        UPSC_SYLLABUS.forEach(s => {
+            subSel.innerHTML += `<option value="${s.subject}">${s.subject}</option>`;
+        });
+    }
+    renderOMRHistory();
+}
+
+function populateOMRChapters() {
+    const sub = document.getElementById('omrSubject').value;
+    const chapSel = document.getElementById('omrChapter');
+    chapSel.innerHTML = '<option value="" disabled selected>Select Chapter</option>';
+    
+    const found = UPSC_SYLLABUS.find(s => s.subject === sub);
+    if(found) {
+        chapSel.style.display = 'block';
+        found.chapters.forEach(c => {
+            chapSel.innerHTML += `<option value="${c.title}">${c.title}</option>`;
+        });
+    } else {
+        chapSel.style.display = 'none';
+    }
+}
+
+function startOMR() {
+    const qCount = parseInt(document.getElementById('omrQCount').value) || 50;
+    const mins = parseInt(document.getElementById('omrTimeLimit').value) || 60;
+    
+    // Determine Test Name
+    const sub = document.getElementById('omrSubject').value;
+    const chap = document.getElementById('omrChapter').value;
+    const manualName = document.getElementById('omrTestName').value;
+    
+    let displayName = manualName;
+    if(!displayName && sub) displayName = `${sub} - ${chap || 'Full Test'}`;
+    if(!displayName) displayName = "Untitled Mock";
+
+    // Reset State
+    omrState = {
+        active: true, questions: qCount, answers: {}, key: {}, 
+        timer: null, timeLeft: mins * 60, manualCheckMode: false,
+        name: displayName
+    };
+
+    // UI Switch
+    document.getElementById('omrSetup').style.display = 'none';
+    document.getElementById('omrSheetView').style.display = 'block';
+    document.getElementById('omrTimer').style.display = 'block';
+
+    renderOMRGrid();
+    startOMRTimer();
+}
+
+// 2. GRID & INTERACTION (Same as before)
+function renderOMRGrid() {
+    const grid = document.getElementById('omrGrid');
+    grid.innerHTML = "";
+    for(let i=1; i<=omrState.questions; i++) {
+        const row = document.createElement('div');
+        row.className = 'omr-row';
+        row.id = `qrow-${i}`;
+        let bubblesHtml = "";
+        ['A','B','C','D'].forEach(opt => {
+            bubblesHtml += `<div class="omr-bubble" onclick="clickBubble(${i}, '${opt}', this)" id="b-${i}-${opt}">${opt}</div>`;
+        });
+        row.innerHTML = `<div class="omr-q-num">${i}</div><div class="omr-bubbles">${bubblesHtml}</div>`;
+        grid.appendChild(row);
+    }
+}
+
+function clickBubble(qNum, opt, el) {
+    if(omrState.manualCheckMode) { setCorrectKey(qNum, opt); return; }
+    if(!omrState.active) return;
+    
+    const row = document.getElementById(`qrow-${qNum}`);
+    
+    if(omrState.answers[qNum] === opt) {
+        delete omrState.answers[qNum];
+        el.classList.remove('selected');
+    } else {
+        row.querySelectorAll('.omr-bubble').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        omrState.answers[qNum] = opt;
+    }
+    document.getElementById('omrAttemptCount').innerText = Object.keys(omrState.answers).length;
+}
+
+// 3. TIMER & SUBMISSION
+function startOMRTimer() {
+    clearInterval(omrState.timer);
+    omrState.timer = setInterval(() => {
+        omrState.timeLeft--;
+        const h = Math.floor(omrState.timeLeft / 3600).toString().padStart(2,'0');
+        const m = Math.floor((omrState.timeLeft % 3600) / 60).toString().padStart(2,'0');
+        const s = (omrState.timeLeft % 60).toString().padStart(2,'0');
+        document.getElementById('omrTimer').innerText = `${h}:${m}:${s}`;
+        
+        if(omrState.timeLeft <= 0) {
+            submitOMR();
+            alert("Time's Up!");
+        }
+    }, 1000);
+}
+
+function submitOMR() {
+    if(!confirm("Submit Test?")) return;
+    clearInterval(omrState.timer);
+    omrState.active = false;
+    document.getElementById('omrSheetView').style.display = 'none';
+    document.getElementById('omrAnalysis').style.display = 'block';
+    calcOMRScore();
+}
+
+// 4. ANALYSIS & MANUAL CHECK
+function toggleOMRManualCheck() {
+    omrState.manualCheckMode = !omrState.manualCheckMode;
+    const btn = document.getElementById('btnManualCheck');
+    if(omrState.manualCheckMode) {
+        btn.innerText = "Done Inputting";
+        btn.style.background = "#10b981";
+        document.getElementById('omrSheetView').style.display = 'block';
+        document.getElementById('omrAnalysis').style.display = 'none';
+        alert("Tap correct answers on the grid.");
+    } else {
+        btn.innerText = "Manual Tap Mode";
+        btn.style.background = "#4b5563";
+        document.getElementById('omrSheetView').style.display = 'none';
+        document.getElementById('omrAnalysis').style.display = 'block';
+        calcOMRScore();
+    }
+}
+
+function setCorrectKey(qNum, opt) {
+    omrState.key[qNum] = opt;
+    const row = document.getElementById(`qrow-${qNum}`);
+    row.querySelectorAll('.omr-bubble').forEach(b => b.classList.remove('correct', 'missed'));
+    document.getElementById(`b-${qNum}-${opt}`).classList.add('missed');
+}
+
+function processOMRKey() {
+    const raw = document.getElementById('omrKeyInput').value.toUpperCase();
+    const clean = raw.replace(/[^A-D]/g, '');
+    if(clean.length > 0) {
+        for(let i=0; i<clean.length && i < omrState.questions; i++) {
+            omrState.key[i+1] = clean[i];
+        }
+        calcOMRScore();
+    }
+}
+
+function calcOMRScore() {
+    let correct = 0, wrong = 0, unattempted = 0;
+    let detailHTML = "";
+    
+    for(let i=1; i<=omrState.questions; i++) {
+        const user = omrState.answers[i];
+        const right = omrState.key[i];
+        let color = "gray";
+        
+        if(!right) { /* No key */ }
+        else if (!user) { unattempted++; }
+        else if (user === right) { correct++; color = "#10b981"; }
+        else { wrong++; color = "#ef4444"; }
+    }
+    
+    const netScore = (correct * 2) - (wrong * 0.66);
+    const accuracy = (correct + wrong) > 0 ? Math.round((correct / (correct+wrong))*100) : 0;
+    
+    // Store for saving
+    omrState.result = { score: netScore.toFixed(2), acc: accuracy, c: correct, w: wrong, u: unattempted };
+    
+    document.getElementById('resScore').innerText = netScore.toFixed(2);
+    document.getElementById('resAcc').innerText = accuracy + "%";
+    document.getElementById('resNeg').innerText = "-" + (wrong * 0.66).toFixed(2);
+    
+    // Update Chart
+    const ctx = document.getElementById('omrChart');
+    if(window.omrPieChart) window.omrPieChart.destroy();
+    window.omrPieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Correct', 'Wrong', 'Skipped'], datasets: [{ data: [correct, wrong, unattempted], backgroundColor: ['#10b981', '#ef4444', '#4b5563'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: 'white' } } } }
+    });
+}
+
+// 5. SAVING & LOGGING (NEW)
+function saveAndCloseOMR() {
+    if(!omrState.result) { alert("Calculate score first!"); return; }
+    
+    if(!appData.omrLogs) appData.omrLogs = [];
+    appData.omrLogs.unshift({
+        date: new Date().toLocaleDateString(),
+        name: omrState.name,
+        score: omrState.result.score,
+        acc: omrState.result.acc
+    });
+    
+    saveData(); // Save to Firebase/Local
+    renderOMRHistory();
+    
+    // Reset UI
+    document.getElementById('omrSetup').style.display = 'block';
+    document.getElementById('omrAnalysis').style.display = 'none';
+    document.getElementById('omrTimer').style.display = 'none';
+    document.getElementById('omrKeyInput').value = "";
+}
+
+function renderOMRHistory() {
+    const tbody = document.getElementById('omrLogBody');
+    if(!tbody) return;
+    tbody.innerHTML = "";
+    
+    if(!appData.omrLogs || appData.omrLogs.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:10px; color:gray;'>No tests taken yet.</td></tr>";
+        return;
+    }
+    
+    appData.omrLogs.forEach(log => {
+        let color = log.score >= 100 ? '#10b981' : (log.score >= 80 ? '#f59e0b' : '#ef4444');
+        tbody.innerHTML += `
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:5px; color:gray;">${log.date}</td>
+                <td style="padding:5px;">${log.name}</td>
+                <td style="padding:5px; text-align:center; font-weight:bold; color:${color};">${log.score}</td>
+                <td style="padding:5px; text-align:right;">${log.acc}%</td>
+            </tr>
+        `;
+    });
+}
+
+function clearOMRLog() {
+    if(confirm("Clear test history?")) {
+        appData.omrLogs = [];
+        saveData();
+        renderOMRHistory();
     }
 }
