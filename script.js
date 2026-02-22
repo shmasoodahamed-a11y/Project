@@ -325,8 +325,7 @@ function showSection(id) {
        if(id === 'yearCompass') renderYearCompass();
       if(id === 'events') renderEvents();
         if(id === 'tribe') renderTribe();
-       if(id ==="orator") renderOrator();
-      if(id==='resolver') renderResolver();
+      
       if(id==='soundscapes') renderSoundscapes ();
      if (id === 'omr_dojo') initOMR();
       
@@ -3231,35 +3230,7 @@ function resetChain() {
         renderFocusChain();
     }
 }
-// --- ORATOR LOGIC ---
-const oratorTopics = [
-    "Is AI a threat to humanity?", "One Nation One Election", 
-    "The relevance of Gandhi today", "Universal Basic Income",
-    "Space Exploration vs Poverty Elimination", "Cryptocurrency Future"
-];
-let oratorInterval;
 
-function startOrator() {
-    // 1. Pick Topic
-    const topic = oratorTopics[Math.floor(Math.random() * oratorTopics.length)];
-    document.getElementById('oratorTopic').innerText = topic;
-    
-    // 2. Start Timer (2 mins)
-    let timeLeft = 120;
-    clearInterval(oratorInterval);
-    
-    oratorInterval = setInterval(() => {
-        timeLeft--;
-        const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
-        const s = (timeLeft % 60).toString().padStart(2,'0');
-        document.getElementById('oratorTimer').innerText = `${m}:${s}`;
-        
-        if(timeLeft <= 0) {
-            clearInterval(oratorInterval);
-            alert("Time's Up! Stop Speaking.");
-        }
-    }, 1000);
-}
 
 // --- SOUNDSCAPES LOGIC (Web Audio API) ---
 let audioCtx;
@@ -3296,22 +3267,7 @@ let lastOut = 0;
 function stopAllNoise() {
     if (noiseSource) { noiseSource.stop(); noiseSource = null; }
 }
-function renderResolver() {
-    // 1. Clear text inputs
-    document.getElementById('resOpt1').value = "";
-    document.getElementById('resOpt2').value = "";
-    
-    // 2. Reset sliders to default (middle)
-    document.getElementById('w_enjoy').value = 5;
-    document.getElementById('w_benefit').value = 8;
-    
-    // 3. Hide the previous result
-    const resultDiv = document.getElementById('resResult');
-    if (resultDiv) {
-        resultDiv.style.display = 'none';
-        resultDiv.innerText = "";
-    }
-}
+
 /* =========================================
    NOTESPACE LOGIC (Notebooks -> Sections -> Pages)
    ========================================= */
