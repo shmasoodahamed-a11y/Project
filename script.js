@@ -347,9 +347,8 @@ if(id === 'nottodo') renderNotToDo();
       if (id === 'stoic_journal') renderStoicJournal();
       if (id === 'test_analyser') renderPrelimsLogs();
       if (id === 'book_vault') renderBookVault();
- if (id === 'niti_game') {
-    // Optional: Only start if not already running
-    if(nitiState.year === 1) updateNitiUI();
+if (id === 'niti_dm') {
+    renderNitiGame();
 }
      
     if (id === 'kanban')    renderKanban();
@@ -1282,7 +1281,7 @@ function renderSyllabus() {
                 const key = `${sub.subject}-${chap.title}-${top}`;
                 const safeKey = key.replace(/'/g, "\\'"); // Escape quotes
                 const data = appData.syllabus[key] || {status:0, pyq:false, rev:0};
-                const hasNote = (data.note || data.link) ? 'has-note' : '';
+                const hasNote = (data.note || data.link || (data.links && data.links.length > 0)) ? 'has-note' : '';
                 
                 // Add the 'visibilityClass' here so it stays open if needed
                 html += `<tr class="topic-row ${chapId} ${visibilityClass}"><td class="topic-name">${top}</td><td><div class="status-btn status-${data.status}" onclick="cycleStatus('${safeKey}', this)"></div></td><td><input type="checkbox" onchange="togglePYQ('${safeKey}')" ${data.pyq?'checked':''}></td><td><div class="rev-box"><button class="rev-btn" onclick="updateRev('${safeKey}', -1, this)">-</button><span>${data.rev||0}</span><button class="rev-btn" onclick="updateRev('${safeKey}', 1, this)">+</button></div></td><td style="text-align:center;"><button class="note-btn ${hasNote}" onclick="openNoteModal('${safeKey}')"><i class="fas fa-sticky-note"></i></button></td></tr>`;
@@ -1465,8 +1464,89 @@ function toggleChapter(id) {
     // 4. Save this preference so it stays open next time
     saveData();
 }
-function openNoteModal(k) { document.getElementById('noteTopicTitle').innerText=k.split('-')[2]; document.getElementById('noteText').value=appData.syllabus[k]?.note||''; document.getElementById('noteLink').value=appData.syllabus[k]?.link||''; document.getElementById('noteModal').dataset.key=k; document.getElementById('noteModal').style.display='flex'; }
-function saveNote() { const k=document.getElementById('noteModal').dataset.key; if(!appData.syllabus[k]) appData.syllabus[k]={status:0}; appData.syllabus[k].note=document.getElementById('noteText').value; appData.syllabus[k].link=document.getElementById('noteLink').value; saveData(); document.getElementById('noteModal').style.display='none'; renderSyllabus(); }
+/* =========================================
+   SYLLABUS NOTE & RESOURCE VAULT
+   ========================================= */
+
+let currentNoteLinks = []; // Temporary array to hold links while the modal is open
+
+function openNoteModal(k) { 
+    const topicName = k.split('-')[2];
+    document.getElementById('noteTopicTitle').innerText = topicName; 
+    document.getElementById('noteText').value = appData.syllabus[k]?.note || ''; 
+    
+    // Load existing links
+    // Backward compatibility: If an old single 'link' exists, convert it to an array automatically
+    if (appData.syllabus[k]?.link && !appData.syllabus[k]?.links) {
+        currentNoteLinks = [appData.syllabus[k].link];
+    } else {
+        currentNoteLinks = appData.syllabus[k]?.links || [];
+    }
+    
+    document.getElementById('noteModal').dataset.key = k; 
+    document.getElementById('noteModal').style.display = 'flex'; 
+    renderNoteLinks();
+}
+
+function addNoteLink() {
+    const linkInput = document.getElementById('newNoteLink');
+    const url = linkInput.value.trim();
+    if (url) {
+        currentNoteLinks.push(url); // Add to our temporary array
+        linkInput.value = ''; // Clear the input box
+        renderNoteLinks(); // Refresh the visual list
+    }
+}
+
+function removeNoteLink(index) {
+    currentNoteLinks.splice(index, 1);
+    renderNoteLinks();
+}
+
+function renderNoteLinks() {
+    const container = document.getElementById('noteLinksContainer');
+    container.innerHTML = '';
+    
+    if(currentNoteLinks.length === 0) {
+        container.innerHTML = '<div style="font-size:0.8rem; color:gray; text-align:center; padding:10px;">No links attached yet.</div>';
+        return;
+    }
+
+    currentNoteLinks.forEach((link, i) => {
+        container.innerHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-card); padding:8px 12px; border-radius:4px; border:1px solid var(--border); font-size:0.85rem;">
+                <a href="${link}" target="_blank" style="color:var(--primary); text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;">
+                    <i class="fas fa-external-link-alt" style="margin-right:5px; font-size:0.7rem;"></i> ${link}
+                </a>
+                <button onclick="removeNoteLink(${i})" style="background:none; color:var(--danger); border:none; padding:0 5px; cursor:pointer;" title="Remove Link">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+    });
+}
+
+function saveNote() { 
+    const k = document.getElementById('noteModal').dataset.key; 
+    
+    // Ensure the data structure exists for this topic
+    if(!appData.syllabus[k]) {
+        appData.syllabus[k] = { status:0, pyq:false, rev:0 }; 
+    }
+    
+    // Save text and the new array of links
+    appData.syllabus[k].note = document.getElementById('noteText').value; 
+    appData.syllabus[k].links = [...currentNoteLinks]; 
+    
+    // Cleanup the old variable if it existed to keep the database clean
+    if (appData.syllabus[k].link) {
+        delete appData.syllabus[k].link;
+    }
+    
+    saveData(); 
+    document.getElementById('noteModal').style.display = 'none'; 
+    renderSyllabus(); // Refresh the syllabus table to show the yellow sticky note icon
+}
 function closeModal(id) { document.getElementById(id).style.display='none'; }
 
 function checkNewsReset() { const t=getTodayDate(); if(appData.news.date!==t) appData.news={date:t,hindu:false,edit:false,mag:false}; document.getElementById('news-hindu').checked=appData.news.hindu; document.getElementById('news-edit').checked=appData.news.edit; document.getElementById('news-mag').checked=appData.news.mag; }
@@ -2466,8 +2546,13 @@ function filterBookVault(mode) {
     renderBookVault();
 }
 
+/* =========================================
+   APP: BOOK VAULT (Progress Bar + Working Buttons)
+   ========================================= */
+
 function addBookVault() {
     const title = document.getElementById('bvTitle').value.trim();
+    const pages = parseInt(document.getElementById('bvTotalPages').value) || 0; 
     const own = document.getElementById('bvCheckOwn').checked;
     const read = document.getElementById('bvCheckRead').checked;
 
@@ -2475,15 +2560,18 @@ function addBookVault() {
         if (!appData.bookVault) appData.bookVault = [];
 
         appData.bookVault.unshift({
-            id: Date.now(), // Unique ID for safer deletion
+            id: Date.now(), 
             title: title,
-            own: own,
-            read: read,
+            own: own,         // true = Owned, false = Wishlist
+            read: read,       // true = Finished, false = Unread
+            totalPages: pages,
+            currentPage: read ? pages : 0, 
             date: new Date().toLocaleDateString()
         });
 
         // Reset Inputs
         document.getElementById('bvTitle').value = '';
+        document.getElementById('bvTotalPages').value = '';
         document.getElementById('bvCheckOwn').checked = false;
         document.getElementById('bvCheckRead').checked = false;
 
@@ -2496,42 +2584,42 @@ function addBookVault() {
 
 function renderBookVault() {
     const list = document.getElementById('bvList');
-    if (!list) return; // Stop if screen not found
+    if (!list) return;
 
     if (!appData.bookVault) appData.bookVault = [];
 
-    // 1. CALCULATE STATS
+    // STATS
     const totalBooks = appData.bookVault.length;
     const totalRead = appData.bookVault.filter(b => b.read).length;
     const readPct = totalBooks === 0 ? 0 : Math.round((totalRead / totalBooks) * 100);
     
-    const countEl = document.getElementById('bvCount');
-    const readEl = document.getElementById('bvReadPct');
-    if(countEl) countEl.innerText = totalBooks;
-    if(readEl) readEl.innerText = readPct + "%";
+    if(document.getElementById('bvCount')) document.getElementById('bvCount').innerText = totalBooks;
+    if(document.getElementById('bvReadPct')) document.getElementById('bvReadPct').innerText = readPct + "%";
 
-    // 2. FILTER & SEARCH
+    // FILTER & SEARCH
     const search = document.getElementById('bvSearch').value.toLowerCase();
-    
     let books = appData.bookVault.filter(b => b.title.toLowerCase().includes(search));
 
     if (bvFilter === 'owned') books = books.filter(b => b.own);
     if (bvFilter === 'wishlist') books = books.filter(b => !b.own);
     if (bvFilter === 'read') books = books.filter(b => b.read);
 
-    // 3. RENDER
     list.innerHTML = '';
 
     if (books.length === 0) {
-        list.innerHTML = `<div style="text-align:center; padding:30px; color:gray;">No books found in "${bvFilter}".</div>`;
+        list.innerHTML = `<div style="text-align:center; padding:30px; color:gray;">No books found.</div>`;
         return;
     }
 
     books.forEach((book) => {
-        // Find real index in main array to ensure buttons work on the right item
+        // Find the exact index in the main array so buttons work safely
         const realIndex = appData.bookVault.findIndex(b => b.id === book.id);
 
-        // Dynamic Icons & Colors
+        // Safe Migration for old data
+        if(book.totalPages === undefined) book.totalPages = 0;
+        if(book.currentPage === undefined) book.currentPage = book.read ? book.totalPages : 0;
+
+        // Dynamic Icons
         const ownIcon = book.own 
             ? '<i class="fas fa-check-circle" style="color:#10b981"></i> Owned' 
             : '<i class="far fa-circle" style="color:gray"></i> Wishlist';
@@ -2543,37 +2631,75 @@ function renderBookVault() {
         const cardStyle = book.own ? 'background:var(--bg-card);' : 'background:rgba(0,0,0,0.2); opacity:0.9;';
         const borderStyle = book.read ? 'border-left: 4px solid #3b82f6;' : 'border-left: 4px solid gray;';
 
-        list.innerHTML += `
-            <div class="card" style="padding:15px; ${cardStyle} ${borderStyle} display:flex; justify-content:space-between; align-items:center;">
-                <div style="flex:1;">
-                    <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">${book.title}</div>
-                    
-                    <div style="display:flex; gap:15px; font-size:0.85rem; user-select:none;">
-                        <span onclick="toggleBV(${realIndex}, 'own')" style="cursor:pointer; padding:4px 8px; background:var(--bg); border-radius:4px; border:1px solid var(--border);">
-                            ${ownIcon}
-                        </span>
-                        <span onclick="toggleBV(${realIndex}, 'read')" style="cursor:pointer; padding:4px 8px; background:var(--bg); border-radius:4px; border:1px solid var(--border);">
-                            ${readIcon}
-                        </span>
+        // Build Progress Bar UI
+        let progressHtml = '';
+        if (book.totalPages > 0) {
+            const pct = Math.min(100, Math.round((book.currentPage / book.totalPages) * 100));
+            progressHtml = `
+                <div style="margin-top: 15px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:gray; margin-bottom:4px;">
+                        <span>Page ${book.currentPage} / ${book.totalPages}</span>
+                        <span style="color:var(--text); font-weight:bold;">${pct}%</span>
+                    </div>
+                    <div style="height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display:flex;">
+                        <div style="width: ${pct}%; background: var(--success); transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="margin-top: 8px; display:flex; gap: 8px;">
+                        <button onclick="updateBookPage(${realIndex}, 10)" style="padding: 4px 10px; font-size: 0.75rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); cursor:pointer;">+10 Pages</button>
+                        <button onclick="setBookPage(${realIndex})" style="padding: 4px 10px; font-size: 0.75rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); cursor:pointer;">Set Page</button>
                     </div>
                 </div>
-                
-                <button onclick="deleteBV(${realIndex})" style="color:#ef4444; background:none; border:none; padding:10px; cursor:pointer;">
-                    <i class="fas fa-trash"></i>
-                </button>
+            `;
+        }
+
+        list.innerHTML += `
+            <div class="card" style="padding:15px; ${cardStyle} ${borderStyle} display:flex; flex-direction:column;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="flex:1;">
+                        <div style="font-weight:bold; font-size:1.1rem; margin-bottom:8px;">${book.title}</div>
+                        <div style="display:flex; gap:15px; font-size:0.85rem; user-select:none;">
+                            <span onclick="toggleBV(${realIndex}, 'own')" style="cursor:pointer; padding:4px 8px; background:var(--bg); border-radius:4px; border:1px solid var(--border);">
+                                ${ownIcon}
+                            </span>
+                            <span onclick="toggleBV(${realIndex}, 'read')" style="cursor:pointer; padding:4px 8px; background:var(--bg); border-radius:4px; border:1px solid var(--border);">
+                                ${readIcon}
+                            </span>
+                        </div>
+                    </div>
+                    <button onclick="deleteBV(${realIndex})" style="color:#ef4444; background:none; border:none; padding:10px; cursor:pointer;" title="Delete Book">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                ${progressHtml}
             </div>
         `;
     });
 }
 
+// --- ESSENTIAL BUTTON HELPER FUNCTIONS ---
+
+// 1. Toggles Wishlist/Owned and Read/Unread
 function toggleBV(index, field) {
     if (appData.bookVault[index]) {
+        // Flip the boolean (true to false, false to true)
         appData.bookVault[index][field] = !appData.bookVault[index][field];
+        
+        // Smart Sync: If marking as Read, auto-fill the pages to 100%
+        if (field === 'read' && appData.bookVault[index].read) {
+            appData.bookVault[index].currentPage = appData.bookVault[index].totalPages;
+        }
+        
+        // Smart Sync: If marking as Unread, reset pages to 0
+        if (field === 'read' && !appData.bookVault[index].read) {
+            appData.bookVault[index].currentPage = 0;
+        }
+
         saveData();
         renderBookVault();
     }
 }
 
+// 2. Deletes the book entirely
 function deleteBV(index) {
     if (confirm("Remove this book from your Vault?")) {
         appData.bookVault.splice(index, 1);
@@ -2581,149 +2707,244 @@ function deleteBV(index) {
         renderBookVault();
     }
 }
-// ==========================================
-// APP: NITI (POLICY GAME)
-// ==========================================
 
-let nitiState = { year: 1, funds: 100, supp: 50, dev: 50, stab: 50, activeEvent: null };
-
-const NITI_EVENTS = [
-    {
-        id: 1, title: "Flash Floods", icon: "🌊",
-        desc: "Heavy monsoon rains have flooded 3 tehsils. People are stranded on rooftops.",
-        opts: [
-            { t: "Deploy NDRF & Helicopters (High Cost)", f: -20, s: 15, d: -5, l: 0, msg: "Lives saved, but the treasury took a hit." },
-            { t: "Standard Relief Camps (Low Cost)", f: -5, s: -10, d: 0, l: -5, msg: "People are angry at the slow response." },
-            { t: "Divert Dam Water (Risky)", f: 0, s: -20, d: -10, l: -10, msg: "Crops destroyed downstream. Farmers are protesting." }
-        ]
-    },
-    {
-        id: 2, title: "Communal Tension", icon: "🔥",
-        desc: "Rumors on WhatsApp have sparked tension between two communities. A procession is planned tomorrow.",
-        opts: [
-            { t: "Ban Procession (Section 144)", f: 0, s: -15, d: 0, l: 20, msg: "Peace maintained, but religious groups are upset." },
-            { t: "Allow with Heavy Police", f: -10, s: 5, d: 0, l: -5, msg: "Procession passed, but minor skirmishes reported." },
-            { t: "Internet Shutdown", f: -5, s: -20, d: -5, l: 15, msg: "Rumors stopped, but students and businesses suffered." }
-        ]
-    },
-    {
-        id: 3, title: "Industrial Project", icon: "🏭",
-        desc: "A multinational company wants to set up a factory. It will bring jobs but displace tribal villages.",
-        opts: [
-            { t: "Approve Project", f: 30, s: -20, d: 25, l: -10, msg: "Economy booming, but tribals are protesting outside your office." },
-            { t: "Reject Project", f: 0, s: 20, d: -10, l: 5, msg: "Tribals are happy, but the CM is angry about lost investment." },
-            { t: "Delay for EIA Report", f: -5, s: 0, d: -5, l: 0, msg: "Both sides are annoyed by the bureaucracy." }
-        ]
-    },
-    {
-        id: 4, title: "Hospital Scam", icon: "🏥",
-        desc: "Your inspection reveals the CMO is stealing medicines. He is the Health Minister's nephew.",
-        opts: [
-            { t: "Suspend CMO immediately", f: 0, s: 20, d: 5, l: -10, msg: "Public loves you, but the Minister is threatening transfer." },
-            { t: "Issue Private Warning", f: 0, s: -10, d: -5, l: 5, msg: "Corruption continues, morale is down." },
-            { t: "Leak to Media", f: 0, s: 10, d: 0, l: -20, msg: "Huge scandal! Government is unstable." }
-        ]
-    },
-    {
-        id: 5, title: "Road Expansion", icon: "🚧",
-        desc: "To widen the highway, you need to demolish illegal shops and a small shrine.",
-        opts: [
-            { t: "Demolish Everything", f: -10, s: -25, d: 20, l: 10, msg: "Traffic is smooth, but you are extremely unpopular." },
-            { t: "Spare the Shrine", f: -5, s: 10, d: 5, l: -5, msg: "Traffic bottleneck remains. Transport lobby is unhappy." },
-            { t: "Cancel Expansion", f: 0, s: 5, d: -15, l: 0, msg: "Development stalled. Funds returned unutilized." }
-        ]
-    }
-];
-
-function startNitiGame() {
-    nitiState = { year: 1, funds: 100, supp: 50, dev: 50, stab: 50, activeEvent: null };
-    updateNitiUI();
-    document.getElementById('nitiOutcome').style.display = 'none';
-    nextNitiEvent();
+// 3. Adds +10 pages from the quick button
+function updateBookPage(index, amount) {
+    let book = appData.bookVault[index];
+    book.currentPage += amount;
+    
+    // Stop it from going below 0 or above total pages
+    if(book.currentPage < 0) book.currentPage = 0;
+    if(book.currentPage > book.totalPages) book.currentPage = book.totalPages;
+    
+    // Auto-check the 'Read' box if you hit the final page
+    book.read = (book.currentPage === book.totalPages);
+    
+    saveData();
+    renderBookVault();
 }
 
-function nextNitiEvent() {
-    // Game Over Checks
-    if (nitiState.funds <= 0) return nitiGameOver("Bankrupt! The state govt has dismissed you.");
-    if (nitiState.supp <= 10) return nitiGameOver("Riots! The public demanded your resignation.");
-    if (nitiState.stab <= 10) return nitiGameOver("Anarchy! Law & order collapsed. President's Rule imposed.");
-    if (nitiState.year > 5) return nitiGameOver("Victory! You completed your tenure successfully!", true);
-
-    // Pick Random Event
-    const event = NITI_EVENTS[Math.floor(Math.random() * NITI_EVENTS.length)];
-    nitiState.activeEvent = event;
-    nitiState.year++;
-
-    // Render Event
-    document.getElementById('nitiIcon').innerText = event.icon;
-    document.getElementById('nitiTitle').innerText = event.title;
-    document.getElementById('nitiDesc').innerText = event.desc;
-    document.getElementById('nitiYear').innerText = nitiState.year;
-
-    const optsDiv = document.getElementById('nitiOptions');
-    optsDiv.innerHTML = '';
+// 4. Sets an exact page number from prompt
+function setBookPage(index) {
+    let book = appData.bookVault[index];
+    let val = prompt(`Enter current page (Max ${book.totalPages}):`, book.currentPage);
     
-    event.opts.forEach((opt, i) => {
+    if (val !== null) {
+        val = parseInt(val);
+        if (!isNaN(val)) {
+            book.currentPage = val;
+            
+            // Stop it from going out of bounds
+            if(book.currentPage < 0) book.currentPage = 0;
+            if(book.currentPage > book.totalPages) book.currentPage = book.totalPages;
+            
+            // Auto-check the 'Read' box if you hit the final page
+            book.read = (book.currentPage === book.totalPages);
+            
+            saveData();
+            renderBookVault();
+        }
+    }
+}
+
+/* =========================================
+   APP: NITI DM (Decision Simulator)
+   ========================================= */
+
+// 1. The Core Event Database
+const nitiEventsDatabase = [
+    // --- SDM LEVEL (Years 1-5) : FIELD CHALLENGES ---
+    { minYear: 1, maxYear: 5, rank: "SDM", title: "The Sand Mafia", desc: "Local mafia is illegally mining sand. The MLA asks you to look the other way.", choices: [{ text: "Raid with police.", effects: { public: 15, pol: -20, fam: 0, stress: 15 } }, { text: "Ignore it.", effects: { public: -15, pol: 15, fam: 0, stress: -5 } }] },
+    { minYear: 1, maxYear: 5, rank: "SDM", title: "Festival Flashpoint", desc: "Two communities want the central ground for festivals on the same day.", choices: [{ text: "Impose Section 144.", effects: { public: -20, pol: -5, fam: 0, stress: 25 } }, { text: "Negotiate a time-split.", effects: { public: 20, pol: 10, fam: -10, stress: 15 } }] },
+    { minYear: 1, maxYear: 4, rank: "SDM", title: "UPSC Prelims Leak", desc: "You catch a center supervisor using a OnePlus Nord CE 4 to leak the GS Paper 1.", choices: [{ text: "Cancel the center's exam & arrest him.", effects: { public: 25, pol: -15, fam: 0, stress: 30 } }, { text: "Confiscate the phone quietly, let exams finish.", effects: { public: -10, pol: 10, fam: 0, stress: 10 } }] },
+    { minYear: 1, maxYear: 5, rank: "SDM", title: "The Workshop Strike", desc: "1st-year B.Tech students are protesting dangerous lathes in the mechanical workshop.", choices: [{ text: "Sanction emergency funds for safety.", effects: { public: 20, pol: -10, fam: 0, stress: 15 } }, { text: "Order police to clear the campus.", effects: { public: -25, pol: 15, fam: 0, stress: 20 } }] },
+    { minYear: 2, maxYear: 5, rank: "SDM", title: "Midnight Hospital Raid", desc: "At 2 AM, you find the Chief Medical Officer sleeping at home while patients wait.", choices: [{ text: "Suspend the CMO instantly.", effects: { public: 25, pol: -10, fam: 0, stress: 15 } }, { text: "Issue a strict warning.", effects: { public: 5, pol: 5, fam: 0, stress: 5 } }] },
+    { minYear: 1, maxYear: 4, rank: "SDM", title: "Article 19 Clash", desc: "A group invokes Fundamental Rights to block a national highway.", choices: [{ text: "Lathi charge.", effects: { public: -15, pol: 15, fam: 0, stress: 25 } }, { text: "Negotiate.", effects: { public: 15, pol: -5, fam: 0, stress: 10 } }] },
+    { minYear: 2, maxYear: 5, rank: "SDM", title: "The Legacy Crash", desc: "The district's C++ based land registry crashes, erasing a week of data.", choices: [{ text: "Work 48 hours to manually recover data.", effects: { public: 15, pol: 5, fam: -20, stress: 30 } }, { text: "Blame state IT.", effects: { public: -10, pol: -20, fam: 0, stress: 5 } }] },
+    { minYear: 1, maxYear: 4, rank: "SDM", title: "Sub-Standard Silicon", desc: "A vendor supplying Basic Electronic Circuits to rural labs is providing faulty hardware.", choices: [{ text: "Blacklist the vendor.", effects: { public: 20, pol: -25, fam: 0, stress: 15 } }, { text: "Issue a warning.", effects: { public: -15, pol: 15, fam: 0, stress: 0 } }] },
+    { minYear: 1, maxYear: 5, rank: "SDM", title: "Ration Shop Scam", desc: "Subsidized grain is being diverted. The supply officer is complicit.", choices: [{ text: "File an FIR.", effects: { public: 25, pol: -15, fam: 0, stress: 15 } }, { text: "Transfer quietly.", effects: { public: 5, pol: 10, fam: 0, stress: 0 } }] },
+    { minYear: 2, maxYear: 4, rank: "SDM", title: "Illegal Encroachment", desc: "A religious structure is built on public land overnight.", choices: [{ text: "Bring bulldozers.", effects: { public: -10, pol: -20, fam: 0, stress: 30 } }, { text: "Seek Court orders.", effects: { public: 5, pol: 5, fam: 0, stress: 10 } }] },
+
+    // --- DM LEVEL (Years 5-13) : DISTRICT COMMANDER ---
+    { minYear: 5, maxYear: 12, rank: "DM", title: "The Election Seizure", desc: "During MCC, your squad intercepts ₹5 Crores belonging to the ruling party.", choices: [{ text: "Seize & report to EC.", effects: { public: 25, pol: -30, fam: 0, stress: 25 } }, { text: "Delay the report.", effects: { public: -25, pol: 25, fam: 0, stress: 10 } }] },
+    { minYear: 5, maxYear: 10, rank: "DM", title: "IT Procurement Fraud", desc: "A massive scam invoicing thousands of Dell WM118 wireless mice at ₹50,000 each is uncovered.", choices: [{ text: "Arrest the procurement head.", effects: { public: 30, pol: -25, fam: 0, stress: 20 } }, { text: "Bury the audit to protect the Ministry.", effects: { public: -20, pol: 20, fam: 0, stress: -5 } }] },
+    { minYear: 6, maxYear: 12, rank: "DM", title: "Engineering Marvel vs Reality", desc: "A new flyover shows sheer-stress fractures. Contractor is CM's friend.", choices: [{ text: "Shut down bridge.", effects: { public: 20, pol: -35, fam: 0, stress: 25 } }, { text: "Quiet night repairs.", effects: { public: -15, pol: 20, fam: 0, stress: 15 } }] },
+    { minYear: 5, maxYear: 12, rank: "DM", title: "Flood vs. Photo-Op", desc: "District is flooded. CM demands an unannounced aerial survey and helipad.", choices: [{ text: "Attend the CM.", effects: { public: -25, pol: 20, fam: 0, stress: 10 } }, { text: "Stay with rescue boats.", effects: { public: 20, pol: -25, fam: 0, stress: 15 } }] },
+    { minYear: 7, maxYear: 13, rank: "DM", title: "The Water War", desc: "Severe drought. Farmers want canal water, but the city needs drinking water.", choices: [{ text: "Divert to city.", effects: { public: -20, pol: 10, fam: 0, stress: 35 } }, { text: "Divert to farms.", effects: { public: 15, pol: -25, fam: 0, stress: 40 } }] },
+    { minYear: 5, maxYear: 13, rank: "DM", title: "Oxygen Crisis", desc: "Hospital is out of oxygen. Neighboring DM refuses to share spare tanks.", choices: [{ text: "Hijack tanks with police.", effects: { public: 30, pol: -25, fam: 0, stress: 35 } }, { text: "Wait for State orders.", effects: { public: -30, pol: 10, fam: 0, stress: 20 } }] },
+    { minYear: 8, maxYear: 13, rank: "DM", title: "The Farmer's March", desc: "10,000 farmers marching to the capital. Politicians want them stopped.", choices: [{ text: "Barricade borders.", effects: { public: -30, pol: 20, fam: 0, stress: 30 } }, { text: "Provide safe passage.", effects: { public: 25, pol: -30, fam: 0, stress: 15 } }] },
+    { minYear: 6, maxYear: 11, rank: "DM", title: "Factory Explosion", desc: "Chemical plant explodes. Owner tries to flee the country.", choices: [{ text: "Seal borders & arrest.", effects: { public: 30, pol: -10, fam: -10, stress: 25 } }, { text: "Focus purely on evacuation.", effects: { public: 10, pol: 5, fam: 0, stress: 15 } }] },
+    { minYear: 5, maxYear: 12, rank: "DM", title: "Cyber Ransom", desc: "Hackers lock treasury servers for Bitcoin.", choices: [{ text: "Refuse to pay. Rebuild DB.", effects: { public: -25, pol: -10, fam: -20, stress: 45 } }, { text: "Secretly pay ransom.", effects: { public: 10, pol: -35, fam: 0, stress: 50 } }] },
+    { minYear: 9, maxYear: 13, rank: "DM", title: "Rogue Encounter", desc: "Your SP executes a gangster in a fake encounter. Public cheers, HR groups furious.", choices: [{ text: "Order magisterial inquiry.", effects: { public: -25, pol: -15, fam: -10, stress: 35 } }, { text: "Sign self-defense report.", effects: { public: 25, pol: 20, fam: 0, stress: 10 } }] },
+    { minYear: 5, maxYear: 10, rank: "DM", title: "The Imphal Deputation", desc: "Posted to Manipur. Must balance ethnic dynamics and infrastructure.", choices: [{ text: "Host community dialogues.", effects: { public: 25, pol: -10, fam: -15, stress: 20 } }, { text: "Strict law & order.", effects: { public: -10, pol: 15, fam: 0, stress: 25 } }] },
+
+    // --- JOINT SECRETARY (Years 14-25) : POLICY & POWER ---
+    { minYear: 14, maxYear: 22, rank: "JS", title: "International Relations Trade", desc: "Foreign delegates insist on terms hurting local manufacturers.", choices: [{ text: "Refuse terms.", effects: { public: 20, pol: -10, fam: 0, stress: 20 } }, { text: "Sign treaty.", effects: { public: -20, pol: 25, fam: 0, stress: 15 } }] },
+    { minYear: 15, maxYear: 24, rank: "JS", title: "Tech Monopolies", desc: "Drafting IT regulations. Lobbyists offer a post-retirement board seat.", choices: [{ text: "Draft strict laws.", effects: { public: 25, pol: -15, fam: 0, stress: 30 } }, { text: "Include loopholes.", effects: { public: -25, pol: 20, fam: 25, stress: -10 } }] },
+    { minYear: 16, maxYear: 26, rank: "JS", title: "The Whistleblower", desc: "Junior officer brings proof of ₹10,000 Cr scam involving a Minister.", choices: [{ text: "Send dossier to CBI.", effects: { public: 35, pol: -40, fam: 0, stress: 40 } }, { text: "Bury the file.", effects: { public: -30, pol: 25, fam: 0, stress: -10 } }] },
+    { minYear: 16, maxYear: 25, rank: "JS", title: "Defense Procurement Hitch", desc: "You find a technical flaw in a drone deal backed by the Defense Minister.", choices: [{ text: "Halt the deal.", effects: { public: 15, pol: -40, fam: 0, stress: 40 } }, { text: "Approve the file.", effects: { public: -15, pol: 25, fam: 0, stress: 5 } }] },
+    { minYear: 15, maxYear: 25, rank: "JS", title: "Centre vs. State Scheme", desc: "Centre mandates a scheme, CM wants a rival one.", choices: [{ text: "Push Centre's scheme.", effects: { public: 10, pol: -25, fam: 0, stress: 20 } }, { text: "Push State's scheme.", effects: { public: 10, pol: 20, fam: 0, stress: 10 } }] },
+    { minYear: 14, maxYear: 20, rank: "JS", title: "Supreme Court Notice", desc: "SC issues contempt notice for failing to implement an environmental order.", choices: [{ text: "Apologize & implement.", effects: { public: 15, pol: -15, fam: -15, stress: 30 } }, { text: "Draft complex affidavit to delay.", effects: { public: -10, pol: 25, fam: 0, stress: 20 } }] },
+    { minYear: 19, maxYear: 25, rank: "JS", title: "Global Pandemic", desc: "New virus emerges. Minister wants to downplay it for the stock market.", choices: [{ text: "Leak severity to WHO.", effects: { public: 40, pol: -50, fam: 0, stress: 45 } }, { text: "Follow orders.", effects: { public: -40, pol: 25, fam: 0, stress: 30 } }] },
+    { minYear: 18, maxYear: 25, rank: "JS", title: "The Austerity Measure", desc: "Economy crashing. Draft a bill cutting government pensions.", choices: [{ text: "Draft ruthless cuts.", effects: { public: -30, pol: 15, fam: -20, stress: 25 } }, { text: "Suggest raising taxes instead.", effects: { public: -40, pol: -10, fam: 10, stress: 20 } }] },
+    { minYear: 15, maxYear: 25, rank: "JS", title: "Space Launch", desc: "ISRO ready for launch, but you spot a 0.5% structural anomaly.", choices: [{ text: "Scrub launch.", effects: { public: -10, pol: -40, fam: 0, stress: 45 } }, { text: "Clear launch.", effects: { public: 20, pol: 30, fam: -10, stress: 50 } }] },
+    { minYear: 14, maxYear: 23, rank: "JS", title: "Pharmaceutical Lobby", desc: "Life-saving drug patent held by US corp. Invoke compulsory licensing?", choices: [{ text: "Break patent for cheap generics.", effects: { public: 40, pol: -30, fam: 0, stress: 35 } }, { text: "Respect patent.", effects: { public: -40, pol: 20, fam: 0, stress: 15 } }] },
+
+    // --- CHIEF SEC / CABINET SEC (Years 26-35) : THE APEX ---
+    { minYear: 26, maxYear: 32, rank: "CS", title: "The Governor's Rebellion", desc: "Governor and CM in constitutional deadlock. Both issue contradictory orders.", choices: [{ text: "Obey CM.", effects: { public: 10, pol: -15, fam: 0, stress: 35 } }, { text: "Obey Governor.", effects: { public: -10, pol: -25, fam: 0, stress: 35 } }] },
+    { minYear: 28, maxYear: 35, rank: "CS", title: "Police Mutiny", desc: "State police on strike demanding higher pay. Law & order collapsing.", choices: [{ text: "Invoke ESMA, arrest leaders.", effects: { public: 10, pol: 10, fam: 0, stress: 40 } }, { text: "Give in to demands.", effects: { public: -25, pol: -20, fam: 0, stress: 15 } }] },
+    { minYear: 32, maxYear: 35, rank: "CAB", title: "Nuclear Escalation", desc: "Border tensions peak. PM asks if bureaucracy is ready for a tactical strike.", choices: [{ text: "Tell the truth: Unprepared.", effects: { public: 0, pol: -20, fam: -10, stress: 40 } }, { text: "Present optimistic fake report.", effects: { public: 0, pol: 25, fam: 0, stress: 20 } }] },
+    { minYear: 30, maxYear: 35, rank: "CAB", title: "Coalition Collapse", desc: "Outgoing PM demands you shred sensitive PMO documents before opposition takes over.", choices: [{ text: "Refuse. Preserve files.", effects: { public: 30, pol: -40, fam: 0, stress: 40 } }, { text: "Shred documents.", effects: { public: -30, pol: 40, fam: 0, stress: 30 } }] },
+    { minYear: 26, maxYear: 32, rank: "CS", title: "The Fiscal Ruin", desc: "Elections in 6 months. CM orders free electricity ordinance that will bankrupt state.", choices: [{ text: "Write strong dissent note.", effects: { public: 10, pol: -30, fam: 0, stress: 20 } }, { text: "Sign the file.", effects: { public: -20, pol: 25, fam: 0, stress: 0 } }] },
+    { minYear: 26, maxYear: 32, rank: "CS", title: "CM's Nephew", desc: "CM's nephew caught driving drunk. CM asks you to 'handle the police'.", choices: [{ text: "Refuse, protect police.", effects: { public: 30, pol: -50, fam: 0, stress: 40 } }, { text: "Transfer police, bury tape.", effects: { public: -40, pol: 40, fam: 0, stress: -10 } }] },
+    { minYear: 28, maxYear: 35, rank: "CAB", title: "Midnight Cabinet", desc: "PM wants to pass controversial executive order at 2 AM bypassing Parliament.", choices: [{ text: "Sign procedural paperwork.", effects: { public: -30, pol: 30, fam: 0, stress: 25 } }, { text: "Resign in protest.", effects: { public: 40, pol: -100, fam: 20, stress: 0 } }] },
+
+    // --- PERSONAL / FAMILY / SURVIVAL (Any Year) ---
+    { minYear: 3, maxYear: 30, rank: "ANY", title: "Anniversary Forgotten", desc: "Worked 16-hour shifts for 3 weeks. Forgot anniversary, spouse packing bags.", choices: [{ text: "Take 3 days emergency leave.", effects: { public: -10, pol: -10, fam: 35, stress: -20 } }, { text: "Buy gift, go back to office.", effects: { public: 5, pol: 5, fam: -15, stress: 5 } }] },
+    { minYear: 5, maxYear: 25, rank: "ANY", title: "Board Exams vs Crisis", desc: "Child's Class 12 board exam panic attack vs factory fire in district.", choices: [{ text: "Rush to factory.", effects: { public: 20, pol: 10, fam: -30, stress: 25 } }, { text: "Stay home with child.", effects: { public: -25, pol: -15, fam: 30, stress: -10 } }] },
+    { minYear: 8, maxYear: 28, rank: "ANY", title: "The Remote Transfer", desc: "Transferred to remote district. No good schools for kids.", choices: [{ text: "Take family with you.", effects: { public: 15, pol: 10, fam: -25, stress: 20 } }, { text: "Pull political strings to cancel.", effects: { public: -15, pol: -20, fam: 25, stress: -5 } }] },
+    { minYear: 10, maxYear: 25, rank: "ANY", title: "Old College Friend", desc: "Old B.Tech roommate asks for a 'small favor' on a government tender.", choices: [{ text: "Throw him out.", effects: { public: 15, pol: 0, fam: -10, stress: 10 } }, { text: "Give him the tender.", effects: { public: -25, pol: -10, fam: 20, stress: 20 } }] },
+    { minYear: 15, maxYear: 32, rank: "ANY", title: "Parent's Funeral", desc: "Parent passes away suddenly. Same day, a massive riot breaks out.", choices: [{ text: "Leave to perform last rites.", effects: { public: -30, pol: -20, fam: 40, stress: 20 } }, { text: "Stay in control room.", effects: { public: 30, pol: 20, fam: -50, stress: 50 } }] },
+    { minYear: 20, maxYear: 34, rank: "ANY", title: "Medical Breakdown", desc: "Years of extreme stress. You collapse and wake up in ICU.", choices: [{ text: "Take 3-month sabbatical.", effects: { public: -10, pol: -15, fam: 25, stress: -50 } }, { text: "Return to work after 3 days.", effects: { public: 15, pol: 20, fam: -25, stress: 45 } }] },
+    { minYear: 15, maxYear: 35, rank: "ANY", title: "The Tell-All Book", desc: "Publisher offers ₹2 Cr for anonymous 'tell-all' exposing bureaucracy.", choices: [{ text: "Write it.", effects: { public: 40, pol: -40, fam: 10, stress: 35 } }, { text: "Refuse offer.", effects: { public: -10, pol: 20, fam: -10, stress: -5 } }] },
+    { minYear: 8, maxYear: 20, rank: "ANY", title: "Engineering Admission", desc: "Child failed entrance exam. College offers free seat if you approve their land expansion.", choices: [{ text: "Approve file.", effects: { public: -30, pol: 10, fam: 40, stress: 15 } }, { text: "Reject it. Make child drop a year.", effects: { public: 20, pol: -10, fam: -40, stress: 25 } }] }
+];
+    
+
+// 2. The Rank System
+const nitiRanks = [
+    { year: 1, title: "Sub-Divisional Magistrate (SDM)" },
+    { year: 5, title: "District Magistrate (DM)" },
+    { year: 14, title: "Divisional Commissioner" },
+    { year: 20, title: "Joint Secretary (Govt of India)" },
+    { year: 28, title: "Chief Secretary (State)" },
+    { year: 33, title: "Cabinet Secretary (GOI)" }
+];
+
+// 3. The Game Engine
+function initNitiGame() {
+    if (!appData.nitiGame) {
+        appData.nitiGame = {
+            year: 1,
+            stats: { public: 50, pol: 50, fam: 50, stress: 0 }
+        };
+    }
+}
+
+function renderNitiGame() {
+    initNitiGame();
+    const game = appData.nitiGame;
+
+    // A. Check Game Over states
+    if (game.stats.stress >= 100) return triggerGameOver("You suffered a severe heart attack from sheer administrative stress.");
+    if (game.stats.pol <= 0) return triggerGameOver("You were permanently suspended for insubordination and excessive political friction.");
+    if (game.stats.public <= 0) return triggerGameOver("Massive riots forced the government to terminate your service.");
+    if (game.year >= 35) return triggerGameOver("Congratulations. You have reached retirement age and stepped down with full honors.", true);
+
+    // B. Determine Current Rank
+    let currentRank = nitiRanks[0].title;
+    for(let r of nitiRanks) {
+        if (game.year >= r.year) currentRank = r.title;
+    }
+
+    // C. Update UI Text
+    document.getElementById('nitiYears').innerText = `Year ${game.year}`;
+    document.getElementById('nitiRank').innerText = currentRank;
+    
+    // D. Update Progress Bars
+    ['public', 'pol', 'fam', 'stress'].forEach(stat => {
+        let val = game.stats[stat];
+        if(val > 100) val = 100; if(val < 0) val = 0;
+        
+        const capStat = stat.charAt(0).toUpperCase() + stat.slice(1);
+        if(document.getElementById(`stat${capStat}`)) {
+            document.getElementById(`stat${capStat}`).innerText = `${val}%`;
+            document.getElementById(`bar${capStat}`).style.width = `${val}%`;
+        }
+    });
+
+    // E. Load the next scenario
+    loadNitiEvent(currentRank);
+}
+
+function loadNitiEvent(currentRank) {
+    const game = appData.nitiGame;
+    
+    let rankCode = "SDM";
+    if (currentRank.includes("District")) rankCode = "DM";
+    if (currentRank.includes("Joint Secretary") || currentRank.includes("Commissioner")) rankCode = "JS";
+    if (currentRank.includes("Chief Secretary")) rankCode = "CS";
+    if (currentRank.includes("Cabinet")) rankCode = "CAB";
+
+    const validEvents = nitiEventsDatabase.filter(e => 
+        game.year >= e.minYear && 
+        game.year <= e.maxYear && 
+        (e.rank === "ANY" || e.rank === rankCode)
+    );
+
+    let eventList = validEvents.length > 0 ? validEvents : nitiEventsDatabase.filter(e => e.rank === "ANY");
+    if(eventList.length === 0) eventList = nitiEventsDatabase; // Ultimate fallback
+
+    const event = eventList[Math.floor(Math.random() * eventList.length)];
+
+    document.getElementById('nitiEventTitle').innerText = event.title;
+    document.getElementById('nitiEventDesc').innerText = event.desc;
+
+    const choicesDiv = document.getElementById('nitiChoices');
+    choicesDiv.innerHTML = ''; // Clear old buttons
+
+    // Generate new buttons
+    event.choices.forEach((choice) => {
         const btn = document.createElement('button');
-        btn.innerText = opt.t;
-        btn.onclick = () => handleNitiChoice(i);
-        btn.style.padding = "12px";
-        btn.style.background = "var(--bg-card)";
-        btn.style.border = "1px solid var(--border)";
-        btn.style.color = "var(--text)";
-        btn.style.cursor = "pointer";
-        btn.onmouseover = () => btn.style.background = "var(--border)";
-        btn.onmouseout = () => btn.style.background = "var(--bg-card)";
-        optsDiv.appendChild(btn);
+        btn.className = 'niti-choice-btn';
+        btn.innerText = choice.text;
+        btn.onclick = () => applyNitiChoice(choice.effects);
+        choicesDiv.appendChild(btn);
     });
 }
 
-function handleNitiChoice(idx) {
-    const choice = nitiState.activeEvent.opts[idx];
+function applyNitiChoice(effects) {
+    let game = appData.nitiGame;
     
-    // Apply Effects
-    nitiState.funds += choice.f;
-    nitiState.supp += choice.s;
-    nitiState.dev += choice.d;
-    nitiState.stab += choice.l;
+    game.stats.public += effects.public || 0;
+    game.stats.pol += effects.pol || 0;
+    game.stats.fam += effects.fam || 0;
+    game.stats.stress += effects.stress || 0;
 
-    // Cap stats at 100
-    if(nitiState.supp > 100) nitiState.supp = 100;
-    if(nitiState.dev > 100) nitiState.dev = 100;
-    if(nitiState.stab > 100) nitiState.stab = 100;
+    for(let key in game.stats) {
+        if(game.stats[key] > 100) game.stats[key] = 100;
+        if(game.stats[key] < 0) game.stats[key] = 0;
+    }
 
-    // Show Feedback
-    const fb = document.getElementById('nitiOutcome');
-    fb.style.display = 'block';
-    document.getElementById('nitiFeedback').innerText = choice.msg;
-    
-    // Color Feedback
-    let changes = [];
-    if(choice.f !== 0) changes.push((choice.f > 0 ? "+" : "") + choice.f + " Fund");
-    if(choice.s !== 0) changes.push((choice.s > 0 ? "+" : "") + choice.s + " Supp");
-    document.getElementById('nitiFeedback').innerHTML += `<br><small style='color:var(--primary)'>(${changes.join(', ')})</small>`;
+    game.year += 1;
+    game.stats.stress -= 2; // Natural stress decay
+    game.stats.fam -= 1;    // Natural family decay
 
-    updateNitiUI();
-    
-    // Delay next event for dramatic effect
-    setTimeout(nextNitiEvent, 1500);
+    saveData();
+    renderNitiGame();
 }
 
-function updateNitiUI() {
-    document.getElementById('nStat-fund').innerText = nitiState.funds;
-    document.getElementById('nStat-supp').innerText = nitiState.supp;
-    document.getElementById('nStat-dev').innerText = nitiState.dev;
-    document.getElementById('nStat-stab').innerText = nitiState.stab;
+function triggerGameOver(reason, isWin = false) {
+    document.getElementById('nitiEventCard').style.display = 'none';
+    const endScreen = document.getElementById('nitiEndScreen');
+    endScreen.style.display = 'block';
+    
+    endScreen.style.background = isWin ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+    endScreen.style.borderColor = isWin ? 'var(--success)' : 'var(--danger)';
+    endScreen.querySelector('h3').innerText = isWin ? 'Happy Retirement!' : 'Career Terminated';
+    endScreen.querySelector('h3').style.color = isWin ? 'var(--success)' : 'var(--danger)';
+    
+    document.getElementById('nitiEndReason').innerText = reason;
 }
 
-function nitiGameOver(msg, win=false) {
-    const card = document.getElementById('nitiEventCard');
-    card.innerHTML = `
-        <div style="font-size:4rem; margin-bottom:15px;">${win ? '🏆' : '💀'}</div>
-        <h2>${win ? 'Promoted!' : 'Terminated'}</h2>
-        <p style="margin:20px 0;">${msg}</p>
-        <button onclick="startNitiGame()" style="background:var(--primary); padding:10px 20px;">Play Again</button>
-    `;
+function resetNitiGame() {
+    if(confirm("Are you sure you want to resign and start a new lifetime?")) {
+        appData.nitiGame = null; // Wipe save data
+        document.getElementById('nitiEventCard').style.display = 'block';
+        document.getElementById('nitiEndScreen').style.display = 'none';
+        saveData();
+        renderNitiGame();
+    }
 }
 // ==========================================
 // APP: THE STOIC JOURNAL (Sentiment Analysis)
@@ -3264,33 +3485,72 @@ function execNsCmd(command, value = null) {
     document.getElementById('nsEditor').focus();
 }
 
-// --- 1. KANBAN COMMAND ---
-let kanbanData = { todo: [], doing: [], done: [] };
-let dragSrcCol = null;
-let dragTaskIdx = null;
+/* =========================================
+   1. KANBAN COMMAND (Restructured & Safe)
+   ========================================= */
+
+function initKanbanData() {
+    // 1. Ensure the main object exists
+    if (!appData.kanban || typeof appData.kanban !== 'object') {
+        appData.kanban = { todo: [], doing: [], done: [] };
+    }
+    
+    // 2. Ensure every column exists as an array and sanitize old data
+    ['todo', 'doing', 'done'].forEach(col => {
+        if (!Array.isArray(appData.kanban[col])) {
+            appData.kanban[col] = [];
+        }
+        
+        // 3. Migration: Convert any old string tasks into objects to prevent crashes
+        appData.kanban[col] = appData.kanban[col].map(task => {
+            if (typeof task === 'string') {
+                return { id: 'k-' + Date.now() + Math.floor(Math.random()*1000), text: task, prio: false };
+            }
+            return task; // If it's already an object, return it as is
+        });
+    });
+}
 
 function renderKanban() {
-    // Render all 3 columns
+    initKanbanData();
+    
     ['todo', 'doing', 'done'].forEach(col => {
         const list = document.getElementById(`list-${col}`);
         const count = document.getElementById(`count-${col}`);
-        list.innerHTML = "";
-        count.innerText = kanbanData[col].length;
         
-        kanbanData[col].forEach((task, idx) => {
+        // Safety check: Stop here if the HTML hasn't loaded properly
+        if (!list || !count) return; 
+
+        list.innerHTML = "";
+        count.innerText = appData.kanban[col].length;
+        
+        appData.kanban[col].forEach((task) => {
             const div = document.createElement('div');
-            div.className = 'kanban-card';
+            div.className = `kanban-card ${task.prio ? 'prio-high' : ''}`;
             div.draggable = true;
-            div.innerHTML = `<span>${task}</span> <i class="fas fa-times" style="color:red; cursor:pointer;" onclick="delKanbanTask('${col}', ${idx})"></i>`;
+            
+            // Fallback for missing text
+            const safeText = task.text || "Untitled Task";
+            
+            div.innerHTML = `
+                <div class="k-card-text">${safeText}</div>
+                <div class="k-card-actions">
+                    <i class="fas fa-edit k-btn-edit" onclick="editKanbanTask('${col}', '${task.id}')" title="Edit"></i>
+                    <i class="fas fa-trash k-btn-del" onclick="delKanbanTask('${col}', '${task.id}')" title="Delete"></i>
+                </div>
+            `;
             
             // Drag Events
             div.ondragstart = (e) => {
-                dragSrcCol = col;
-                dragTaskIdx = idx;
+                e.dataTransfer.setData('text/plain', JSON.stringify({ col, id: task.id }));
                 e.dataTransfer.effectAllowed = "move";
                 div.style.opacity = '0.4';
+                div.style.transform = 'scale(0.95)';
             };
-            div.ondragend = () => { div.style.opacity = '1'; };
+            div.ondragend = () => { 
+                div.style.opacity = '1'; 
+                div.style.transform = 'scale(1)';
+            };
             
             list.appendChild(div);
         });
@@ -3298,25 +3558,50 @@ function renderKanban() {
 }
 
 function addKanbanTask(col) {
+    initKanbanData();
     const input = document.getElementById(`input-${col}`);
     const val = input.value.trim();
+    
     if(val) {
-        kanbanData[col].push(val);
+        const isPrio = val.startsWith('!');
+        const cleanText = isPrio ? val.substring(1).trim() : val;
+
+        appData.kanban[col].push({ 
+            id: 'k-' + Date.now() + Math.floor(Math.random()*1000), 
+            text: cleanText,
+            prio: isPrio
+        });
+        
         input.value = "";
+        saveData(); 
         renderKanban();
     }
 }
 
-function delKanbanTask(col, idx) {
-    kanbanData[col].splice(idx, 1);
-    renderKanban();
+function editKanbanTask(col, id) {
+    const task = appData.kanban[col].find(t => t.id === id);
+    if(task) {
+        const newText = prompt("Edit Task:", task.text);
+        if(newText !== null && newText.trim() !== "") {
+            task.text = newText.trim();
+            saveData();
+            renderKanban();
+        }
+    }
+}
+
+function delKanbanTask(col, id) {
+    if(confirm("Delete this task?")) {
+        appData.kanban[col] = appData.kanban[col].filter(t => t.id !== id);
+        saveData();
+        renderKanban();
+    }
 }
 
 function kanbanAllowDrop(e) { e.preventDefault(); }
 
 function kanbanDrop(e) {
     e.preventDefault();
-    // Identify target column based on ID climbing
     let target = e.target;
     while(target && !target.id.startsWith('col-')) {
         target = target.parentElement;
@@ -3325,22 +3610,30 @@ function kanbanDrop(e) {
     
     const targetCol = target.id.split('-')[1];
     
-    // Move Data
-    if(dragSrcCol !== null && dragTaskIdx !== null) {
-        const task = kanbanData[dragSrcCol].splice(dragTaskIdx, 1)[0];
-        kanbanData[targetCol].push(task);
-        renderKanban();
-        dragSrcCol = null; dragTaskIdx = null;
-    }
+    try {
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        const srcCol = data.col;
+        const taskId = data.id;
+
+        if(srcCol !== targetCol && appData.kanban[srcCol] && appData.kanban[targetCol]) {
+            const taskIndex = appData.kanban[srcCol].findIndex(t => t.id === taskId);
+            if(taskIndex > -1) {
+                const task = appData.kanban[srcCol].splice(taskIndex, 1)[0];
+                appData.kanban[targetCol].push(task);
+                saveData();
+                renderKanban();
+            }
+        }
+    } catch(err) { console.error("Drop Parse Error", err); }
 }
 
 function clearKanban() {
-    if(confirm("Clear board?")) {
-        kanbanData = { todo: [], doing: [], done: [] };
+    if(confirm("Clear entire board? This cannot be undone.")) {
+        appData.kanban = { todo: [], doing: [], done: [] };
+        saveData();
         renderKanban();
     }
 }
-
 
 /* =========================================
    OMR DOJO v2.0 (Chapter-wise + Logging)

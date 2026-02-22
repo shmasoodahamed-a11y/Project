@@ -293,3 +293,31 @@ th { background: var(--header-row); position: sticky; top: 0; }
 .omr-bubble.correct { background: #10b981; border-color: #10b981; color:white; } /* Green */
 .omr-bubble.wrong { background: #ef4444; border-color: #ef4444; color:white; } /* Red */
 .omr-bubble.missed { border: 2px solid #10b981; color: #10b981; } /* Green Ring (Should have been this) */
+/* NITI DM SIMULATOR STYLES */
+.niti-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+.niti-bar div {
+    height: 100%;
+    transition: width 0.4s ease, background 0.4s ease;
+}
+.niti-choice-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    text-align: left;
+}
+.niti-choice-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}

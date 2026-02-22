@@ -381,7 +381,7 @@
     <i class="fas fa-pen-fancy" style="color:#64748b"></i>
     <span>The Stoic</span>
 </div>
-              <div class="app-icon" onclick="selectApp('niti_game')">
+              <div class="app-icon" onclick="selectApp('niti_dm')">
     <i class="fas fa-balance-scale" style="color:#f59e0b"></i>
     <span>Niti (DM Game)</span>
 </div>
@@ -480,7 +480,27 @@
         <button onclick="closeModal('planModal')" style="background:var(--danger)">Close</button>
     </div>
 </div>
-    <div id="noteModal" class="modal"><div class="modal-content"><h3>Note</h3><textarea id="noteText" rows="5" class="modal-input"></textarea><input id="noteLink" class="modal-input"><button onclick="saveNote()">Save</button><button onclick="closeModal('noteModal')">Close</button></div></div>
+<div id="noteModal" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-bottom: 10px;">Topic: <span id="noteTopicTitle" style="color:var(--primary);"></span></h3>
+        
+        <label style="font-size: 0.8rem; color: gray;">My Notes & Strategy</label>
+        <textarea id="noteText" rows="5" class="modal-input" placeholder="Key takeaways from this topic..."></textarea>
+        
+        <label style="font-size: 0.8rem; color: gray;">Resources / Lecture Links</label>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <input id="newNoteLink" class="modal-input" style="margin:0;" placeholder="Paste URL (YouTube, PDF...)">
+            <button onclick="addNoteLink()" style="background:var(--primary); padding: 10px 15px;"><i class="fas fa-plus"></i></button>
+        </div>
+        
+        <div id="noteLinksContainer" style="max-height: 120px; overflow-y: auto; display:flex; flex-direction:column; gap:5px; margin-bottom:10px;"></div>
+        
+        <div style="display:flex; gap:10px; margin-top: 15px;">
+            <button onclick="saveNote()" style="flex: 1; background: var(--success);">Save Resource</button>
+            <button onclick="closeModal('noteModal')" style="flex: 1; background: var(--danger);">Close</button>
+        </div>
+    </div>
+</div>
     <div id="subjectModal" class="modal"><div class="modal-content"><h3>Done!</h3><select id="timerSubject" class="modal-input"><option>History</option><option>Polity</option><option>Geography</option><option>Economy</option><option>Env</option><option>SciTech</option><option>CSAT</option></select><div id="endSessionTopic"></div><button onclick="saveTimerSession()">Log</button></div></div>
     <div id="aiModal" class="modal"><div class="modal-content"><h3>AI</h3><select id="aiTopic" class="modal-input"><option disabled selected>Topic...</option></select><select id="aiMode" class="modal-input"><option value="explain">Explain</option><option value="quiz">Quiz</option></select><textarea id="aiOutput" rows="5" class="modal-input"></textarea><button onclick="generateAIPrompt()">Generate</button><button onclick="closeModal('aiModal')">Close</button></div></div>
     <div id="calcModal" class="modal"><div class="modal-content"><h3>Calc</h3><input id="calcInput" class="modal-input"><div class="calc-keys"><button onclick="calc('7')">7</button><button onclick="calc('8')">8</button><button onclick="calc('9')">9</button><button onclick="calc('/')">/</button><button onclick="calc('4')">4</button><button onclick="calc('5')">5</button><button onclick="calc('6')">6</button><button onclick="calc('*')">*</button><button onclick="calc('1')">1</button><button onclick="calc('2')">2</button><button onclick="calc('3')">3</button><button onclick="calc('-')">-</button><button onclick="calc('C')">C</button><button onclick="calc('0')">0</button><button onclick="calc('=')">=</button><button onclick="calc('+')">+</button></div><button onclick="closeModal('calcModal')">Close</button></div></div>
@@ -638,7 +658,7 @@
         <div id="mainsList" style="display:grid; gap:10px;"></div>
     </div>
 </div>
-          <div id="book_vault" class="section">
+         <div id="book_vault" class="section">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h2><i class="fas fa-book-reader"></i> BookVault</h2>
         <div style="text-align:right; font-size:0.9rem; color:gray;">
@@ -655,7 +675,10 @@
     </div>
 
     <div class="card" style="margin-bottom:20px; border-left:4px solid var(--primary);">
-        <input type="text" id="bvTitle" placeholder="Enter Book Title..." class="modal-input" style="margin-bottom:15px; font-weight:bold;">
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="bvTitle" placeholder="Enter Book Title..." class="modal-input" style="margin:0; flex: 2; font-weight:bold;">
+            <input type="number" id="bvTotalPages" placeholder="Total Pages (Optional)" class="modal-input" style="margin:0; flex: 1;">
+        </div>
         
         <div style="display:flex; gap:20px; margin-bottom:15px;">
             <label style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px; background:var(--bg); border-radius:6px; flex:1; justify-content:center; border:1px solid var(--border);">
@@ -675,47 +698,61 @@
 
     <div id="bvList" style="display:grid; gap:10px;"></div>
 </div>
-          <div id="niti_game" class="section">
+      
+    <div id="niti_dm" class="section">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h2><i class="fas fa-balance-scale"></i> Niti: District Collector</h2>
-        <span style="font-size:0.9rem; color:gray;">Year <span id="nitiYear">1</span></span>
+        <h2><i class="fas fa-landmark"></i> NITI DM: The Bureaucrat</h2>
+        <button onclick="resetNitiGame()" style="background:var(--danger); padding:5px 10px; font-size:0.8rem;">Restart Career</button>
     </div>
 
-    <div class="card" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:5px; text-align:center; padding:15px; margin-bottom:20px; background:var(--nav-bg);">
-        <div>
-            <div style="font-size:1.5rem;">💰</div>
-            <div style="font-weight:bold; color:#facc15;"><span id="nStat-fund">100</span>Cr</div>
-            <small>Budget</small>
+    <div class="card" style="margin-bottom: 20px; background: var(--bg-card);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+            <div>
+                <div style="font-size: 0.8rem; color: gray;">Current Posting</div>
+                <div id="nitiRank" style="font-size: 1.2rem; font-weight: bold; color: var(--primary);">Sub-Divisional Magistrate (SDM)</div>
+                <div id="nitiLocation" style="font-size: 0.9rem;">State Cadre</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.8rem; color: gray;">Years in Service</div>
+                <div id="nitiYears" style="font-size: 1.2rem; font-weight: bold;">Year 1</div>
+                <div style="font-size: 0.8rem; color: var(--danger);">Retirement: Year 35</div>
+            </div>
         </div>
-        <div>
-            <div style="font-size:1.5rem;">❤️</div>
-            <div style="font-weight:bold; color:#ef4444;"><span id="nStat-supp">50</span>%</div>
-            <small>Support</small>
-        </div>
-        <div>
-            <div style="font-size:1.5rem;">🏗️</div>
-            <div style="font-weight:bold; color:#3b82f6;"><span id="nStat-dev">50</span>%</div>
-            <small>Growth</small>
-        </div>
-        <div>
-            <div style="font-size:1.5rem;">⚖️</div>
-            <div style="font-weight:bold; color:#10b981;"><span id="nStat-stab">50</span>%</div>
-            <small>Law</small>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span><i class="fas fa-users"></i> Public Trust</span> <span id="statPublic">50%</span></div>
+                <div class="niti-bar"><div id="barPublic" style="width:50%; background:#10b981;"></div></div>
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span><i class="fas fa-handshake"></i> Political Favor</span> <span id="statPol">50%</span></div>
+                <div class="niti-bar"><div id="barPol" style="width:50%; background:#f59e0b;"></div></div>
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span><i class="fas fa-home"></i> Family Bond</span> <span id="statFam">50%</span></div>
+                <div class="niti-bar"><div id="barFam" style="width:50%; background:#ec4899;"></div></div>
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem;"><span><i class="fas fa-heartbeat"></i> Stress Level</span> <span id="statStress">0%</span></div>
+                <div class="niti-bar"><div id="barStress" style="width:0%; background:#ef4444;"></div></div>
+            </div>
         </div>
     </div>
 
-    <div id="nitiEventCard" class="card" style="text-align:center; padding:30px; min-height:300px; display:flex; flex-direction:column; justify-content:center;">
-        <div id="nitiIcon" style="font-size:4rem; margin-bottom:15px;">📜</div>
-        <h2 id="nitiTitle" style="margin-bottom:10px;">Welcome, DC Sahab</h2>
-        <p id="nitiDesc" style="color:gray; margin-bottom:25px; line-height:1.6;">You have taken charge of the district. Your goal is to survive 5 years without getting suspended, bankrupt, or causing riots.</p>
+    <div id="nitiEventCard" class="card" style="text-align:center; padding: 30px 20px; border: 1px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <h3 id="nitiEventTitle" style="margin-bottom: 15px; color: var(--text);">Graduation from LBSNAA</h3>
+        <p id="nitiEventDesc" style="font-size: 0.95rem; color: gray; margin-bottom: 25px; line-height: 1.5;">
+            Welcome to the service. Your foundation course is complete. You have been assigned your cadre and are heading to your first posting.
+        </p>
         
-        <div id="nitiOptions" style="display:grid; gap:10px;">
-            <button onclick="startNitiGame()" style="background:var(--primary); padding:15px;">Take Oath</button>
+        <div id="nitiChoices" style="display:flex; flex-direction:column; gap:10px;">
         </div>
     </div>
-
-    <div id="nitiOutcome" style="margin-top:20px; padding:15px; border-left:4px solid var(--border); display:none; background:var(--bg);">
-        <strong>Last Decision:</strong> <span id="nitiFeedback"></span>
+    
+    <div id="nitiEndScreen" class="card" style="display:none; text-align:center; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger);">
+        <h3 style="color: var(--danger);">Career Terminated</h3>
+        <p id="nitiEndReason" style="margin: 10px 0;">You pushed too hard and collapsed.</p>
+        <button onclick="resetNitiGame()" style="background:var(--danger); margin-top:15px;">Start Next Life</button>
     </div>
 </div>
           <div id="stoic_journal" class="section">
@@ -886,7 +923,10 @@
 </div>
           <div id="kanban" class="section">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h2><i class="fas fa-columns"></i> Kanban Command</h2>
+        <div>
+            <h2><i class="fas fa-columns"></i> Kanban Command</h2>
+            <p style="font-size:0.8rem; color:gray; margin-top:5px;">Tip: Start a task with "!" to mark it as High Priority.</p>
+        </div>
         <button onclick="clearKanban()" style="background:var(--danger); padding:5px 10px; font-size:0.8rem;">Reset Board</button>
     </div>
     
@@ -894,15 +934,15 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:15px; height:100%;">
             
             <div class="kanban-col" id="col-todo" ondrop="kanbanDrop(event)" ondragover="kanbanAllowDrop(event)">
-                <div class="kanban-header" style="background:#ef4444;">TO DO <span id="count-todo">0</span></div>
+                <div class="kanban-header" style="background:#ef4444;">TO DO <span id="count-todo" class="kanban-badge">0</span></div>
                 <div class="kanban-input-area">
-                    <input type="text" id="input-todo" placeholder="+ Add Task" onkeypress="if(event.key==='Enter') addKanbanTask('todo')">
+                    <input type="text" id="input-todo" placeholder="+ Add Task (Use ! for priority)" onkeypress="if(event.key==='Enter') addKanbanTask('todo')">
                 </div>
                 <div id="list-todo" class="kanban-list"></div>
             </div>
 
             <div class="kanban-col" id="col-doing" ondrop="kanbanDrop(event)" ondragover="kanbanAllowDrop(event)">
-                <div class="kanban-header" style="background:#f59e0b;">IN PROGRESS <span id="count-doing">0</span></div>
+                <div class="kanban-header" style="background:#f59e0b;">IN PROGRESS <span id="count-doing" class="kanban-badge">0</span></div>
                 <div class="kanban-input-area">
                     <input type="text" id="input-doing" placeholder="+ Add Task" onkeypress="if(event.key==='Enter') addKanbanTask('doing')">
                 </div>
@@ -910,7 +950,7 @@
             </div>
 
             <div class="kanban-col" id="col-done" ondrop="kanbanDrop(event)" ondragover="kanbanAllowDrop(event)">
-                <div class="kanban-header" style="background:#10b981;">DONE <span id="count-done">0</span></div>
+                <div class="kanban-header" style="background:#10b981;">DONE <span id="count-done" class="kanban-badge">0</span></div>
                 <div class="kanban-input-area">
                     <input type="text" id="input-done" placeholder="+ Add Task" onkeypress="if(event.key==='Enter') addKanbanTask('done')">
                 </div>
