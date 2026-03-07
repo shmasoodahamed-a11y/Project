@@ -16,7 +16,7 @@ let currentDate = new Date();
 
 // Try to initialize Firebase
 try {
-    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE") {
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZk") {
         firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
