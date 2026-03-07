@@ -16,20 +16,20 @@ let currentDate = new Date();
 
 // Try to initialize Firebase
 try {
-    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZk") {
+    // Check if firebase exists AND the API key is not an empty string
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "" && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE") {
         firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
         isOffline = false;
         console.log("Cloud Mode: Active");
     } else {
-        console.log("Offline Mode: Keys missing or placeholder used.");
+        console.log("Offline Mode: Keys missing or invalid.");
     }
 } catch(e) {
     console.warn("Offline Mode Force: ", e);
     isOffline = true;
 }
-
 // ==========================================
 // 2. DATA CONSTANTS
 // ==========================================
