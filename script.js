@@ -15,22 +15,22 @@ let isOffline = true;
 let currentDate = new Date(); 
 
 // Try to initialize Firebase
+// Try to initialize Firebase
 try {
-    // Check if firebase exists AND the API key is not an empty string
-    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "" && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZk") {
+    // UPDATED: This now correctly checks that the key is NOT the generic placeholder
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZk") {
         firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
         isOffline = false;
         console.log("Cloud Mode: Active");
     } else {
-        console.log("Offline Mode: Keys missing or invalid.");
+        console.log("Offline Mode: Keys missing or placeholder used.");
     }
 } catch(e) {
     console.warn("Offline Mode Force: ", e);
     isOffline = true;
-}
-// ==========================================
+}// ==========================================
 // 2. DATA CONSTANTS
 // ==========================================
 const UPSC_SYLLABUS = [
