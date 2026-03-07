@@ -18,7 +18,7 @@ let currentDate = new Date();
 // Try to initialize Firebase
 try {
     // UPDATED: This now correctly checks that the key is NOT the generic placeholder
-    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZk") {
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZ") {
         firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
