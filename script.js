@@ -15,10 +15,8 @@ let isOffline = true;
 let currentDate = new Date(); 
 
 // Try to initialize Firebase
-// Try to initialize Firebase
 try {
-    // UPDATED: This now correctly checks that the key is NOT the generic placeholder
-    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "AIzaSyC3tVuV5xzYUlNyqi0Qsz5qo3CdaOdkdZ") {
+    if (typeof firebase !== 'undefined' && firebaseConfig.apiKey !== "YOUR_API_KEY_HERE") {
         firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
@@ -30,7 +28,9 @@ try {
 } catch(e) {
     console.warn("Offline Mode Force: ", e);
     isOffline = true;
-}// ==========================================
+}
+
+// ==========================================
 // 2. DATA CONSTANTS
 // ==========================================
 const UPSC_SYLLABUS = [
